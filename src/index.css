@@ -77,7 +77,6 @@
     background: transparent !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
-    color: #000000 !important;
     overflow: visible !important;
   }
 
@@ -105,10 +104,10 @@
     margin: 0 !important;
   }
 
-  /* Regular text pages get forced white background, while covers preserve their theme colors */
-  .print-sheet:not(.print-cover) {
-    background: #ffffff !important;
-    color: #000000 !important;
+  /* Allow theme background colors on print sheets (color set via inline style per page) */
+  .print-sheet {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Gutter binding indicator during PDF review (faint center line, can be cut) */

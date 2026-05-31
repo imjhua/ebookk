@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { Book, BookTheme, Page, PageLayoutType, PrintSettings, Margins, PRESET_PAPER_SIZES, TocEntry } from '../types';
-import { Printer, FileText, Ruler, BookOpen, Compass, Plus, Trash2 } from 'lucide-react';
+import { Printer, FileText, Ruler, Compass, Plus, Trash2 } from 'lucide-react';
 import Calibration from './Calibration';
 
 const THEME_BUTTONS: { id: BookTheme; label: string }[] = [
@@ -15,7 +15,7 @@ const THEME_BUTTONS: { id: BookTheme; label: string }[] = [
   { id: 'zen',      label: 'ZEN' },
 ];
 
-type SubTab = 'page' | 'format' | 'meta' | 'calibration';
+type SubTab = 'page' | 'format' | 'calibration';
 
 interface BookEditorProps {
   book: Book;
@@ -105,7 +105,6 @@ export default function BookEditor({
         {([
           { id: 'page'        as SubTab, Icon: FileText, label: '페이지' },
           { id: 'format'      as SubTab, Icon: Ruler,    label: '서식' },
-          { id: 'meta'        as SubTab, Icon: BookOpen, label: '정보' },
           { id: 'calibration' as SubTab, Icon: Compass,  label: '보정' },
         ] as const).map(({ id, Icon, label }) => (
           <button
@@ -126,11 +125,11 @@ export default function BookEditor({
       </div>
 
       {/* ── SCROLLABLE CONTENT ── */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin">
+      <div className="flex-1 overflow-y-auto scrollbar-thin flex flex-col">
 
         {/* ── PAGE EDIT ── */}
         {subTab === 'page' && (
-          <div className="px-4 py-4 space-y-4">
+          <div className="px-4 py-4 flex flex-col gap-4 flex-1">
             {currentPage ? (
               <>
                 <div>
@@ -245,7 +244,7 @@ export default function BookEditor({
                 })()}
 
                 {['sequence', 'title-body'].includes(currentPage.layoutType) && (
-                  <div className="space-y-3">
+                  <div className="flex flex-col gap-3 flex-1">
                     <FieldInput
                       label="페이지 제목"
                       value={currentPage.title || ''}
@@ -258,13 +257,58 @@ export default function BookEditor({
                       onChange={(v) => onUpdatePageMeta(currentPage.id, { content: v })}
                       placeholder="내용 입력"
                       multiline
+                      grow
                     />
                   </div>
                 )}
 
-                {['body', 'quote'].includes(currentPage.layoutType) && (
+                {currentPage.layoutType === 'body' && (
+                  <FieldInput
+                    label="본문 내용"
+                    value={currentPage.content}
+                    onChange={(v) => onUpdatePageMeta(currentPage.id, { content: v })}
+                    placeholder="본문 내용을 입력하세요..."
+                    multiline
+                    grow
+                  />
+                )}
+
+                {currentPage.layoutType === 'quote' && (
+                  <FieldInput
+                    label="인용구"
+                    value={currentPage.content}
+                    onChange={(v) => onUpdatePageMeta(currentPage.id, { content: v })}
+                    placeholder="인용구 텍스트 입력..."
+                    multiline
+                    grow
+                  />
+                )}
+
+                {currentPage.layoutType === 'title' && (
+                  <FieldInput
+                    label="제목 텍스트"
+                    value={currentPage.content}
+                    onChange={(v) => onUpdatePageMeta(currentPage.id, { content: v })}
+                    placeholder="제목 텍스트 입력..."
+                    multiline
+                    grow
+                  />
+                )}
+
+                {currentPage.layoutType === 'poem' && (
+                  <FieldInput
+                    label="시 내용"
+                    value={currentPage.content}
+                    onChange={(v) => onUpdatePageMeta(currentPage.id, { content: v })}
+                    placeholder="시 내용 입력..."
+                    multiline
+                    grow
+                  />
+                )}
+
+                {currentPage.layoutType === 'blank' && (
                   <div className="rounded-xl px-3 py-3 text-[11px]" style={{ backgroundColor: '#F5F0E8', color: '#B4A99E' }}>
-                    지면을 직접 클릭하여 본문을 편집하세요.
+                    빈 페이지입니다.
                   </div>
                 )}
               </>
@@ -381,19 +425,6 @@ export default function BookEditor({
           </div>
         )}
 
-        {/* ── META ── */}
-        {subTab === 'meta' && (
-          <div className="px-4 py-4 space-y-3">
-            <label className="block text-[10px] font-bold" style={{ color: '#B4A99E' }}>도서 서지정보</label>
-            <FieldInput label="제목"   value={book.title}           onChange={(v) => onUpdateBook({ ...book, title: v })}     placeholder="제목 입력" />
-            <div className="grid grid-cols-2 gap-2">
-              <FieldInput label="작가명" value={book.author}          onChange={(v) => onUpdateBook({ ...book, author: v })}    placeholder="지은이" />
-              <FieldInput label="출판사" value={book.publisher || ''} onChange={(v) => onUpdateBook({ ...book, publisher: v })} placeholder="출판사" />
-            </div>
-            <FieldInput label="부제목" value={book.subtitle || ''}  onChange={(v) => onUpdateBook({ ...book, subtitle: v })}  placeholder="부제목" />
-          </div>
-        )}
-
         {/* ── CALIBRATION ── */}
         {subTab === 'calibration' && (
           <div className="px-3 py-4">
@@ -407,13 +438,15 @@ export default function BookEditor({
 }
 
 function FieldInput({
-  label, value, onChange, placeholder, multiline,
+  label, value, onChange, placeholder, multiline, rows, grow,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   placeholder?: string;
   multiline?: boolean;
+  rows?: number;
+  grow?: boolean;
 }) {
   const sharedStyle: React.CSSProperties = {
     width: '100%',
@@ -424,14 +457,15 @@ function FieldInput({
     fontSize: '11px',
     color: '#2A2420',
     outline: 'none',
-    resize: multiline ? 'vertical' : 'none',
+    resize: multiline && !grow ? 'vertical' : 'none',
     fontFamily: 'inherit',
+    ...(grow ? { flex: 1 } : {}),
   };
   return (
-    <div>
+    <div className={grow ? 'flex flex-col flex-1' : ''}>
       <span className="block text-[10px] font-semibold mb-1" style={{ color: '#B4A99E' }}>{label}</span>
       {multiline
-        ? <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={4} style={sharedStyle} />
+        ? <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={grow ? undefined : (rows ?? 4)} style={sharedStyle} className={grow ? 'flex-1' : ''} />
         : <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={sharedStyle} />
       }
     </div>

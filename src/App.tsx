@@ -26,9 +26,6 @@ import BookSpreadReader, { PaperTheme } from './components/BookSpreadReader';
 export default function App() {
   const [book, setBook] = useState<Book>(BOOKS_TEMPLATES[0]);
 
-  // Edit vs read mode
-  const [isEditMode, setIsEditMode] = useState<boolean>(true);
-
   // Page navigation state
   const [selectedPageIndex, setSelectedPageIndex] = useState<number>(0);
   const [currentPageSpread, setCurrentPageSpread] = useState<number>(0);
@@ -38,7 +35,7 @@ export default function App() {
   // Calibration scale (px per mm)
   const [scale, setScale] = useState<number>(() => {
     const saved = localStorage.getItem('prepress-calibration-scale');
-    return saved ? parseFloat(saved) : 3.78;
+    return saved ? parseFloat(saved) : 3;
   });
 
   // Print settings
@@ -251,24 +248,6 @@ export default function App() {
             className="shrink-0 flex items-center justify-between px-4 py-2 gap-3"
             style={{ backgroundColor: '#FDFAF6', borderBottom: '1px solid #E8E0D4' }}
           >
-            {/* Left: Edit / Read mode */}
-            <div className="flex rounded-lg overflow-hidden shrink-0" style={{ border: '1px solid #E8E0D4' }}>
-              <button
-                onClick={() => setIsEditMode(false)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors"
-                style={{ backgroundColor: !isEditMode ? '#2A2420' : '#FDFAF6', color: !isEditMode ? '#fff' : '#7A6F66' }}
-              >
-                <Eye size={12} /> 읽기
-              </button>
-              <button
-                onClick={() => setIsEditMode(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors"
-                style={{ backgroundColor: isEditMode ? '#B5714A' : '#FDFAF6', color: isEditMode ? '#fff' : '#7A6F66' }}
-              >
-                <Edit2 size={12} /> 편집
-              </button>
-            </div>
-
             {/* Center: View mode + navigation */}
             <div className="flex items-center gap-2">
               {/* View mode */}
@@ -379,8 +358,6 @@ export default function App() {
               book={book}
               settings={settings}
               scale={scale}
-              onUpdatePageText={handleUpdatePageText}
-              isEditMode={isEditMode}
               viewMode={viewMode}
               currentPageSpread={currentPageSpread}
               paperTheme={paperTheme}
@@ -403,7 +380,7 @@ export default function App() {
       </main>
 
       {/* Printable DOM (hidden on screen) */}
-      <PrintSurface book={book} settings={settings} />
+      <PrintSurface book={book} settings={settings} paperTheme={paperTheme} />
     </div>
   );
 }

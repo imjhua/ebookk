@@ -17,8 +17,7 @@ export default function Calibration({ scale, onChangeScale }: CalibrationProps) 
   const CARD_HEIGHT_MM = 53.98;
 
   const handleReset = () => {
-    // browser default approximation: ~3.78 pixels per mm (96 DPI)
-    onChangeScale(3.78);
+    onChangeScale(3);
   };
 
   // Convert scale to DPI for tech explanation
@@ -109,7 +108,7 @@ export default function Calibration({ scale, onChangeScale }: CalibrationProps) 
             onMouseLeave={(e) => (e.currentTarget.style.color = '#B4A99E')}
           >
             <RotateCcw size={13} />
-            기본값 복원 (96DPI)
+            기본값 복원
           </button>
         </div>
       </div>
