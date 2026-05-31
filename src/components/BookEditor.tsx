@@ -4,125 +4,207 @@
  */
 
 import React, { useState } from 'react';
-import { Book, Page, PageLayoutType, PrintSettings, Margins, PRESET_PAPER_SIZES } from '../types';
-import { Trash2, Plus, Settings, Layout, FileText } from 'lucide-react';
+import { Book, BookTheme, Page, PageLayoutType, PrintSettings, Margins, PRESET_PAPER_SIZES } from '../types';
+import { Printer, FileText, Ruler, BookOpen, Compass } from 'lucide-react';
+import Calibration from './Calibration';
 
-const LAYOUT_TYPES: { type: PageLayoutType; label: string; desc: string; icon: string }[] = [
-  { type: 'body',  label: '본문',      desc: '일반 본문 텍스트',        icon: '¶' },
-  { type: 'title', label: '제목',      desc: '섹션 제목 페이지',        icon: 'T' },
-  { type: 'poem',  label: '시',        desc: '넓은 여백의 시 레이아웃', icon: '✦' },
-  { type: 'quote', label: '인용구',    desc: '강조 인용구 중앙 배치',   icon: '"' },
-  { type: 'blank', label: '빈 페이지', desc: '완전히 비어있는 페이지',  icon: '○' },
+const THEME_BUTTONS: { id: BookTheme; label: string }[] = [
+  { id: 'classic',  label: 'CLASSIC' },
+  { id: 'modern',   label: 'MODERN' },
+  { id: 'academic', label: 'ACADEMIC' },
+  { id: 'zen',      label: 'ZEN' },
 ];
 
-const LAYOUT_BADGE: Record<PageLayoutType, string> = {
-  body:  'bg-slate-100 text-slate-600',
-  title: 'bg-indigo-100 text-indigo-700',
-  poem:  'bg-emerald-100 text-emerald-700',
-  quote: 'bg-amber-100 text-amber-700',
-  blank: 'bg-slate-50 text-slate-400 border border-slate-200',
-};
+type SubTab = 'page' | 'format' | 'meta' | 'calibration';
 
 interface BookEditorProps {
   book: Book;
   settings: PrintSettings;
+  selectedPageIndex: number;
+  scale: number;
   onChangeSettings: (newSettings: PrintSettings) => void;
   onUpdateBook: (updatedBook: Book) => void;
+  onUpdatePageMeta: (pageId: string, updates: Partial<Pick<Page, 'title' | 'content'>>) => void;
+  onChangeScale: (scale: number) => void;
+  onPrint: () => void;
 }
 
-export default function BookEditor({ book, settings, onChangeSettings, onUpdateBook }: BookEditorProps) {
-  const [activeTab, setActiveTab] = useState<'format' | 'meta'>('format');
-  const [selectedLayoutType, setSelectedLayoutType] = useState<PageLayoutType>('body');
-  const paperSize = PRESET_PAPER_SIZES.find((p) => p.id === settings.paperSizeId) || PRESET_PAPER_SIZES[0];
+export default function BookEditor({
+  book,
+  settings,
+  selectedPageIndex,
+  scale,
+  onChangeSettings,
+  onUpdateBook,
+  onUpdatePageMeta,
+  onChangeScale,
+  onPrint,
+}: BookEditorProps) {
+  const [subTab, setSubTab] = useState<SubTab>('page');
+
+  const currentPage = book.pages[selectedPageIndex] as Page | undefined;
+  const paperSize   = PRESET_PAPER_SIZES.find((p) => p.id === settings.paperSizeId) || PRESET_PAPER_SIZES[0];
 
   const handleMarginChange = (key: keyof Margins, value: number) => {
     onChangeSettings({ ...settings, margins: { ...settings.margins, [key]: value } });
   };
 
-  const handleAddPage = () => {
-    const newPage: Page = { id: `p-${Date.now()}`, layoutType: selectedLayoutType, content: '' };
-    onUpdateBook({ ...book, pages: [...book.pages, newPage] });
-  };
-
-  const handleDeletePage = (pageId: string) => {
-    if (book.pages.length <= 1) { alert('최소 1페이지는 보존해야 합니다.'); return; }
-    onUpdateBook({ ...book, pages: book.pages.filter((p) => p.id !== pageId) });
+  const PAGE_TYPE_LABEL: Record<PageLayoutType, string> = {
+    cover:       'cover',
+    toc:         'toc',
+    chapter:     'chapter',
+    body:        'body',
+    quote:       'quote',
+    sequence:    'sequence',
+    'title-body':'title-body',
+    blank:       'blank',
+    title:       'title',
+    poem:        'poem',
   };
 
   return (
-    <div className="bg-white rounded-3xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-full min-h-[600px]">
-
-      {/* Tab Selectors */}
-      <div className="flex border-b border-slate-100 bg-slate-50/50">
+    <div
+      className="flex flex-col h-full no-print shrink-0 overflow-hidden"
+      style={{ width: '280px', minWidth: '280px', backgroundColor: '#FDFAF6', borderLeft: '1px solid #E8E0D4' }}
+    >
+      {/* ── PRINT BUTTON ── */}
+      <div className="px-4 pt-4 pb-3 shrink-0" style={{ borderBottom: '1px solid #E8E0D4' }}>
         <button
-          onClick={() => setActiveTab('format')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
-            activeTab === 'format' ? 'border-indigo-600 text-indigo-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
+          onClick={onPrint}
+          className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-[12px] font-bold text-white cursor-pointer transition-opacity hover:opacity-90"
+          style={{ backgroundColor: '#B5714A' }}
         >
-          <Layout size={14} />
-          여백 및 서체
-        </button>
-        <button
-          onClick={() => setActiveTab('meta')}
-          className={`flex-1 flex items-center justify-center gap-2 py-3.5 text-xs font-semibold border-b-2 transition-all cursor-pointer ${
-            activeTab === 'meta' ? 'border-indigo-600 text-indigo-700 bg-white' : 'border-transparent text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          <Settings size={14} />
-          책 정보 및 커버
+          <Printer size={14} />
+          인쇄 출력
         </button>
       </div>
 
-      <div className="p-6 flex-1 overflow-auto space-y-6 scrollbar-thin">
+      {/* ── BOOK THEME ── */}
+      <div className="px-4 py-3 shrink-0" style={{ borderBottom: '1px solid #E8E0D4' }}>
+        <p className="text-[10px] font-bold mb-2" style={{ color: '#B4A99E' }}>BOOK THEME</p>
+        <div className="grid grid-cols-4 gap-1">
+          {THEME_BUTTONS.map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => onUpdateBook({ ...book, theme: id })}
+              className="py-1.5 text-[10px] font-bold rounded-lg transition-all cursor-pointer"
+              style={{
+                backgroundColor: book.theme === id ? '#2A2420' : '#F5F0E8',
+                color:           book.theme === id ? '#F5F0E8'  : '#7A6F66',
+                border:          book.theme === id ? '1px solid #2A2420' : '1px solid #E8E0D4',
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
 
-        {/* ─── FORMAT TAB ─── */}
-        {activeTab === 'format' && (
-          <div className="space-y-6">
+      {/* ── SUB TABS ── */}
+      <div className="flex shrink-0" style={{ borderBottom: '1px solid #E8E0D4', backgroundColor: '#F5F0E8' }}>
+        {([
+          { id: 'page'        as SubTab, Icon: FileText, label: '페이지' },
+          { id: 'format'      as SubTab, Icon: Ruler,    label: '서식' },
+          { id: 'meta'        as SubTab, Icon: BookOpen, label: '정보' },
+          { id: 'calibration' as SubTab, Icon: Compass,  label: '보정' },
+        ] as const).map(({ id, Icon, label }) => (
+          <button
+            key={id}
+            onClick={() => setSubTab(id)}
+            title={label}
+            className="flex-1 flex flex-col items-center gap-0.5 py-2.5 cursor-pointer transition-colors text-[9px] font-bold"
+            style={{
+              borderBottom: subTab === id ? '2px solid #B5714A' : '2px solid transparent',
+              color:         subTab === id ? '#B5714A'           : '#B4A99E',
+              backgroundColor: subTab === id ? '#FDFAF6' : 'transparent',
+            }}
+          >
+            <Icon size={13} />
+            {label}
+          </button>
+        ))}
+      </div>
 
-            {/* Paper Size */}
+      {/* ── SCROLLABLE CONTENT ── */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin">
+
+        {/* ── PAGE EDIT ── */}
+        {subTab === 'page' && (
+          <div className="px-4 py-4 space-y-4">
+            {currentPage ? (
+              <>
+                <div>
+                  <span className="text-[10px] font-bold" style={{ color: '#B4A99E' }}>현재 페이지 타입</span>
+                  <p className="mt-0.5 text-[13px] font-bold" style={{ color: '#B5714A' }}>
+                    {PAGE_TYPE_LABEL[currentPage.layoutType]}
+                  </p>
+                </div>
+
+                {currentPage.layoutType === 'cover' && (
+                  <div className="space-y-3">
+                    <FieldInput label="첫 제목"   value={book.title}           onChange={(v) => onUpdateBook({ ...book, title: v })}    placeholder="책 제목 입력" />
+                    <FieldInput label="서브타이틀" value={book.subtitle || ''}  onChange={(v) => onUpdateBook({ ...book, subtitle: v })} placeholder="부제목 입력" />
+                    <FieldInput label="저자명"     value={book.author}          onChange={(v) => onUpdateBook({ ...book, author: v })}   placeholder="작가명 입력" />
+                  </div>
+                )}
+
+                {currentPage.layoutType === 'chapter' && (
+                  <div className="space-y-3">
+                    <FieldInput label="챕터 제목" value={currentPage.title || ''} onChange={(v) => onUpdatePageMeta(currentPage.id, { title: v })}   placeholder="예: CHAPTER 01" />
+                    <FieldInput label="챕터 부제" value={currentPage.content}     onChange={(v) => onUpdatePageMeta(currentPage.id, { content: v })} placeholder="챕터 소개 문구 (선택)" />
+                  </div>
+                )}
+
+                {currentPage.layoutType === 'toc' && (
+                  <FieldInput label="목차 텍스트" value={currentPage.content} onChange={(v) => onUpdatePageMeta(currentPage.id, { content: v })} placeholder="목차 내용 입력" multiline />
+                )}
+
+                {['body', 'quote', 'sequence', 'title-body'].includes(currentPage.layoutType) && (
+                  <div className="rounded-xl px-3 py-3 text-[11px]" style={{ backgroundColor: '#F5F0E8', color: '#B4A99E' }}>
+                    지면을 직접 클릭하여 본문을 편집하세요.
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-[11px]" style={{ color: '#aaa' }}>선택된 페이지 없음</p>
+            )}
+          </div>
+        )}
+
+        {/* ── FORMAT ── */}
+        {subTab === 'format' && (
+          <div className="px-4 py-4 space-y-5">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-                1. 책 규격 (판형)
-              </label>
+              <label className="block text-[10px] font-bold mb-1.5" style={{ color: '#B4A99E' }}>책 규격 (판형)</label>
               <select
                 value={settings.paperSizeId}
                 onChange={(e) => onChangeSettings({ ...settings, paperSizeId: e.target.value })}
-                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-indigo-500 cursor-pointer hover:bg-slate-100/50 transition-colors"
+                className="w-full rounded-lg px-3 py-2 text-[11px] font-semibold cursor-pointer outline-none"
+                style={{ backgroundColor: '#F5F0E8', border: '1px solid #E8E0D4', color: '#2A2420' }}
               >
                 {PRESET_PAPER_SIZES.map((size) => (
-                  <option key={size.id} value={size.id}>
-                    {size.name} ({size.width}×{size.height}mm)
-                  </option>
+                  <option key={size.id} value={size.id}>{size.name} ({size.width}×{size.height}mm)</option>
                 ))}
               </select>
-              <p className="text-[10px] text-slate-500 mt-1.5 leading-relaxed">{paperSize.description}</p>
+              <p className="text-[9px] mt-1" style={{ color: '#C4B8AE' }}>{paperSize.description}</p>
             </div>
 
-            {/* Margins */}
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-3">
-                2. 여백 (mm)
-              </label>
-              <div className="grid grid-cols-2 gap-4">
+              <label className="block text-[10px] font-bold mb-2" style={{ color: '#B4A99E' }}>여백 (mm)</label>
+              <div className="space-y-3">
                 {(['top', 'bottom', 'inner', 'outer'] as const).map((key) => {
-                  const labels = {
-                    top: '상단 여백',
-                    bottom: '하단 여백',
-                    inner: '제본 여백 (안쪽)',
-                    outer: '바깥 여백',
-                  };
+                  const labels = { top: '상단', bottom: '하단', inner: '제본(안쪽)', outer: '바깥' };
                   return (
-                    <div key={key} className="space-y-1.5">
-                      <div className="flex justify-between items-center">
-                        <span className="text-[11px] font-semibold text-slate-600">{labels[key]}</span>
-                        <span className="text-[11px] text-indigo-600 font-mono font-bold">{settings.margins[key]}mm</span>
+                    <div key={key}>
+                      <div className="flex justify-between mb-1">
+                        <span className="text-[10px]" style={{ color: '#7A6F66' }}>{labels[key]}</span>
+                        <span className="text-[10px] font-bold font-mono" style={{ color: '#B5714A' }}>{settings.margins[key]}mm</span>
                       </div>
-                      <input
-                        type="range" min="10" max="40"
+                      <input type="range" min="10" max="40"
                         value={settings.margins[key]}
                         onChange={(e) => handleMarginChange(key, parseInt(e.target.value))}
-                        className="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-ew-resize accent-indigo-600"
+                        className="w-full h-1 rounded-lg appearance-none cursor-ew-resize"
+                        style={{ accentColor: '#B5714A' }}
                       />
                     </div>
                   );
@@ -130,239 +212,125 @@ export default function BookEditor({ book, settings, onChangeSettings, onUpdateB
               </div>
             </div>
 
-            {/* Typography */}
-            <div className="border-t border-slate-100 pt-5 space-y-4">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                3. 타이포그래피
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-semibold text-slate-500">서체</span>
-                  <select
-                    value={settings.fontFamily}
+            <div style={{ borderTop: '1px solid #E8E0D4', paddingTop: '1.25rem' }}>
+              <label className="block text-[10px] font-bold mb-2" style={{ color: '#B4A99E' }}>타이포그래피</label>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <div>
+                  <span className="text-[9px] font-semibold block mb-1" style={{ color: '#C4B8AE' }}>서체</span>
+                  <select value={settings.fontFamily}
                     onChange={(e) => onChangeSettings({ ...settings, fontFamily: e.target.value as any })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 cursor-pointer"
+                    className="w-full rounded-lg px-2 py-1.5 text-[10px] cursor-pointer outline-none"
+                    style={{ backgroundColor: '#F5F0E8', border: '1px solid #E8E0D4', color: '#2A2420' }}
                   >
-                    <option value="Noto Serif KR">나눔/노토 명조체</option>
+                    <option value="Noto Serif KR">나눔/노토 명조</option>
                     <option value="Playfair Display">클래식 세리프</option>
                     <option value="Inter">인터 산스</option>
                     <option value="Fira Code">코딩 고딕</option>
                   </select>
                 </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-semibold text-slate-500">본문 크기</span>
-                  <select
-                    value={settings.fontSize}
+                <div>
+                  <span className="text-[9px] font-semibold block mb-1" style={{ color: '#C4B8AE' }}>본문 크기</span>
+                  <select value={settings.fontSize}
                     onChange={(e) => onChangeSettings({ ...settings, fontSize: parseFloat(e.target.value) })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs font-semibold text-slate-800 cursor-pointer"
+                    className="w-full rounded-lg px-2 py-1.5 text-[10px] cursor-pointer outline-none"
+                    style={{ backgroundColor: '#F5F0E8', border: '1px solid #E8E0D4', color: '#2A2420' }}
                   >
-                    <option value="9">9pt (소형 시집)</option>
-                    <option value="10">10pt (표준 소설)</option>
+                    <option value="9">9pt (시집)</option>
+                    <option value="10">10pt (소설)</option>
                     <option value="10.5">10.5pt (단행본)</option>
-                    <option value="11">11pt (학술/논문)</option>
+                    <option value="11">11pt (학술)</option>
                     <option value="12">12pt (큰 글씨)</option>
                   </select>
                 </div>
               </div>
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-[11px] font-semibold text-slate-600">행간</span>
-                  <span className="text-[11px] text-indigo-600 font-mono font-bold">{settings.lineHeight}배</span>
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-[10px]" style={{ color: '#7A6F66' }}>행간</span>
+                  <span className="text-[10px] font-bold font-mono" style={{ color: '#B5714A' }}>{settings.lineHeight}배</span>
                 </div>
-                <input
-                  type="range" min="1.4" max="2.2" step="0.05"
+                <input type="range" min="1.4" max="2.2" step="0.05"
                   value={settings.lineHeight}
                   onChange={(e) => onChangeSettings({ ...settings, lineHeight: parseFloat(e.target.value) })}
-                  className="w-full h-1 bg-slate-100 rounded-lg appearance-none cursor-ew-resize accent-indigo-600"
+                  className="w-full h-1 rounded-lg appearance-none cursor-ew-resize"
+                  style={{ accentColor: '#B5714A' }}
                 />
               </div>
             </div>
 
-            {/* Print Elements */}
-            <div className="border-t border-slate-100 pt-5 space-y-3">
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">
-                4. 인쇄 요소
-              </label>
+            <div style={{ borderTop: '1px solid #E8E0D4', paddingTop: '1.25rem' }}>
+              <label className="block text-[10px] font-bold mb-2" style={{ color: '#B4A99E' }}>인쇄 요소</label>
               {[
-                { key: 'showPageNumbers', label: '쪽번호 (Page Numbers)' },
-                { key: 'showRunningHead', label: '러닝헤드 (Header Titles)' },
-                { key: 'showCropMarks',   label: '재단선 (Crop Marks 3mm)' },
+                { key: 'showPageNumbers', label: '쪽번호' },
+                { key: 'showRunningHead', label: '러닝헤드' },
+                { key: 'showCropMarks',   label: '재단선 (3mm)' },
               ].map(({ key, label }) => (
-                <label key={key} className="flex items-center gap-3 bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs font-medium text-slate-700 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
+                <label key={key} className="flex items-center gap-2.5 py-2 cursor-pointer select-none text-[11px]" style={{ color: '#7A6F66' }}>
+                  <input type="checkbox"
                     checked={(settings as any)[key]}
                     onChange={(e) => onChangeSettings({ ...settings, [key]: e.target.checked })}
-                    className="w-4 h-4 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500 cursor-pointer"
+                    className="w-3.5 h-3.5 rounded cursor-pointer"
+                    style={{ accentColor: '#B5714A' }}
                   />
                   {label}
                 </label>
               ))}
             </div>
-
           </div>
         )}
 
-        {/* ─── META TAB ─── */}
-        {activeTab === 'meta' && (
-          <div className="space-y-5">
-            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">도서 서지정보</h4>
-            <div className="space-y-3">
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-500">제목</span>
-                <input
-                  type="text" value={book.title}
-                  onChange={(e) => onUpdateBook({ ...book, title: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-indigo-500"
-                  placeholder="제목 입력"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-500">작가명</span>
-                  <input
-                    type="text" value={book.author}
-                    onChange={(e) => onUpdateBook({ ...book, author: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-indigo-500"
-                    placeholder="지은이"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <span className="text-[10px] font-bold text-slate-500">출판사</span>
-                  <input
-                    type="text" value={book.publisher || ''}
-                    onChange={(e) => onUpdateBook({ ...book, publisher: e.target.value })}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-indigo-500"
-                    placeholder="출판 소속"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1">
-                <span className="text-[10px] font-bold text-slate-500">부제목</span>
-                <input
-                  type="text" value={book.subtitle || ''}
-                  onChange={(e) => onUpdateBook({ ...book, subtitle: e.target.value })}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs font-semibold text-slate-800 outline-none focus:ring-1 focus:ring-indigo-500"
-                  placeholder="부제목"
-                />
-              </div>
+        {/* ── META ── */}
+        {subTab === 'meta' && (
+          <div className="px-4 py-4 space-y-3">
+            <label className="block text-[10px] font-bold" style={{ color: '#B4A99E' }}>도서 서지정보</label>
+            <FieldInput label="제목"   value={book.title}           onChange={(v) => onUpdateBook({ ...book, title: v })}     placeholder="제목 입력" />
+            <div className="grid grid-cols-2 gap-2">
+              <FieldInput label="작가명" value={book.author}          onChange={(v) => onUpdateBook({ ...book, author: v })}    placeholder="지은이" />
+              <FieldInput label="출판사" value={book.publisher || ''} onChange={(v) => onUpdateBook({ ...book, publisher: v })} placeholder="출판사" />
             </div>
+            <FieldInput label="부제목" value={book.subtitle || ''}  onChange={(v) => onUpdateBook({ ...book, subtitle: v })}  placeholder="부제목" />
+          </div>
+        )}
 
-            <div className="border-t border-slate-100 pt-5 space-y-4">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">표지 스타일</h4>
-              <div className="space-y-2">
-                <span className="text-[10px] font-semibold text-slate-500 block">커버 디자인</span>
-                <div className="grid grid-cols-2 gap-2">
-                  {([
-                    { id: 'minimal',   name: '미니멀' },
-                    { id: 'classic',   name: '클래식' },
-                    { id: 'modern',    name: '모던' },
-                    { id: 'editorial', name: '에디토리얼' },
-                  ] as const).map((style) => (
-                    <button
-                      key={style.id}
-                      onClick={() => onUpdateBook({ ...book, coverStyle: style.id })}
-                      className={`px-3 py-2 text-xs font-semibold rounded-lg border text-left cursor-pointer transition-all ${
-                        book.coverStyle === style.id
-                          ? 'border-indigo-600 bg-indigo-50/40 text-indigo-700'
-                          : 'border-slate-100 bg-slate-50 text-slate-600 hover:bg-slate-100/50'
-                      }`}
-                    >
-                      {style.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <span className="text-[10px] font-semibold text-slate-500 block">커버 색상</span>
-                <div className="flex flex-wrap gap-2.5">
-                  {(['slate', 'navy', 'forest', 'terracotta', 'parchment', 'gold'] as const).map((theme) => {
-                    const colors: Record<string, string> = {
-                      slate:     'bg-slate-600 border-slate-500',
-                      navy:      'bg-[#1E293B] border-[#0F172A]',
-                      forest:    'bg-[#14532D] border-[#166534]',
-                      terracotta:'bg-[#7C2D12] border-[#9A3412]',
-                      parchment: 'bg-[#FCFAF2] border-stone-300',
-                      gold:      'bg-[#451A03] border-amber-800',
-                    };
-                    return (
-                      <button
-                        key={theme}
-                        onClick={() => onUpdateBook({ ...book, coverTheme: theme })}
-                        className={`w-8 h-8 rounded-full border cursor-pointer transition-all ${colors[theme]} ${
-                          book.coverTheme === theme ? 'ring-2 ring-indigo-500 ring-offset-2 scale-110' : 'hover:scale-105'
-                        }`}
-                        title={theme}
-                      />
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
+        {/* ── CALIBRATION ── */}
+        {subTab === 'calibration' && (
+          <div className="px-3 py-4">
+            <Calibration scale={scale} onChangeScale={onChangeScale} />
           </div>
         )}
 
       </div>
+    </div>
+  );
+}
 
-      {/* ─── PAGE MANAGER (always visible) ─── */}
-      <div className="bg-slate-50 p-4 border-t border-slate-100 flex flex-col gap-3 shrink-0">
-
-        <div className="flex justify-between items-center">
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-            페이지 목록 ({book.pages.length}p)
-          </span>
-        </div>
-
-        {/* Layout Type Selector + Add Button */}
-        <div className="flex gap-1.5 flex-wrap items-center">
-          {LAYOUT_TYPES.map(({ type, label, icon }) => (
-            <button
-              key={type}
-              onClick={() => setSelectedLayoutType(type)}
-              title={LAYOUT_TYPES.find((l) => l.type === type)?.desc}
-              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold border cursor-pointer transition-all ${
-                selectedLayoutType === type
-                  ? 'bg-indigo-600 text-white border-indigo-600'
-                  : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'
-              }`}
-            >
-              <span className="font-mono text-[10px]">{icon}</span>
-              {label}
-            </button>
-          ))}
-          <button
-            onClick={handleAddPage}
-            className="flex items-center gap-1 px-3 py-1.5 bg-slate-900 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-bold cursor-pointer transition-all ml-auto"
-          >
-            <Plus size={11} />
-            추가
-          </button>
-        </div>
-
-        {/* Pages List */}
-        <div className="flex gap-2 overflow-x-auto py-1 scrollbar-thin">
-          {book.pages.map((page, idx) => (
-            <div
-              key={page.id}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-white border border-slate-200 rounded-lg shadow-sm flex-shrink-0"
-            >
-              <FileText size={11} className="text-slate-400" />
-              <span className="font-mono font-semibold text-[11px] text-slate-700">{idx + 1}</span>
-              <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${LAYOUT_BADGE[page.layoutType]}`}>
-                {LAYOUT_TYPES.find((l) => l.type === page.layoutType)?.label}
-              </span>
-              <button
-                onClick={() => handleDeletePage(page.id)}
-                className="ml-0.5 text-slate-300 hover:text-rose-500 cursor-pointer transition-colors"
-                title="페이지 삭제"
-              >
-                <Trash2 size={11} />
-              </button>
-            </div>
-          ))}
-        </div>
-
-      </div>
+function FieldInput({
+  label, value, onChange, placeholder, multiline,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  placeholder?: string;
+  multiline?: boolean;
+}) {
+  const sharedStyle: React.CSSProperties = {
+    width: '100%',
+    backgroundColor: '#F5F0E8',
+    border: '1px solid #E8E0D4',
+    borderRadius: '8px',
+    padding: '7px 10px',
+    fontSize: '11px',
+    color: '#2A2420',
+    outline: 'none',
+    resize: multiline ? 'vertical' : 'none',
+    fontFamily: 'inherit',
+  };
+  return (
+    <div>
+      <span className="block text-[10px] font-semibold mb-1" style={{ color: '#B4A99E' }}>{label}</span>
+      {multiline
+        ? <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} rows={4} style={sharedStyle} />
+        : <input type="text" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} style={sharedStyle} />
+      }
     </div>
   );
 }

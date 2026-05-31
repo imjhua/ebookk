@@ -35,15 +35,14 @@ export default function PrintManager({ book, settings, scale }: PrintManagerProp
     absolutePageCounter++;
   });
 
-  // Cover Style themes mapping
-  const coverThemeColors = {
-    slate: 'bg-slate-800 text-slate-100 border-slate-700',
-    navy: 'bg-[#1E293B] text-slate-100 border-indigo-900',
-    forest: 'bg-[#14532D] text-[#ECECE2] border-[#155e27]',
-    terracotta: 'bg-[#7C2D12] text-[#FEF3C7] border-[#8e3518]',
-    parchment: 'bg-[#FCFAF2] text-[#2C261F] border-[#EADFCA]',
-    gold: 'bg-[#451A03] text-amber-200 border-amber-800',
-  }[book.coverTheme];
+  // Book theme cover colors
+  const themeConfig = {
+    classic:  { bg: 'bg-[#2C261F] text-[#FAF6EC] border-[#4a3f30]' },
+    modern:   { bg: 'bg-[#111111] text-white border-[#333]' },
+    academic: { bg: 'bg-[#1E3A5F] text-white border-[#2a4f80]' },
+    zen:      { bg: 'bg-[#f9f9f7] text-[#333] border-[#ccc]' },
+  }[book.theme] || { bg: 'bg-[#2C261F] text-[#FAF6EC] border-[#4a3f30]' };
+  const coverThemeColors = themeConfig.bg;
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm w-full">
@@ -104,16 +103,18 @@ export default function PrintManager({ book, settings, scale }: PrintManagerProp
       </div>
 
       <div className="flex items-center gap-2 mb-4">
-        <Eye className="text-indigo-600" size={16} />
-        <h3 className="text-sm font-semibold text-slate-800">출력 전 실제 인쇄 배치 구조 (총 {printablePagesList.length + 1}페이지)</h3>
+        <Eye style={{ color: '#B5714A' }} size={16} />
+        <h3 className="text-sm font-semibold" style={{ color: '#2A2420' }}>출력 전 실제 인쇄 배치 구조 (열 {printablePagesList.length + 1}페이지)</h3>
       </div>
 
       {/* Printed pages simulated deck preview */}
-      <div className="bg-slate-100 border border-slate-200/50 rounded-2xl p-6 overflow-auto max-h-[480px] flex flex-wrap gap-8 justify-center items-center select-none scrollbar-thin">
+      <div className="rounded-2xl p-6 overflow-auto max-h-[480px] flex flex-wrap gap-8 justify-center items-center select-none scrollbar-thin"
+        style={{ backgroundColor: '#F5F0E8', border: '1px solid #E8E0D4' }}
+      >
         
         {/* 1. SEED BOOK COVER (표지 미리보기) */}
         <div className="flex flex-col items-center gap-2">
-          <span className="text-[10px] font-mono font-bold text-slate-400 uppercase">Page I (Front Cover)</span>
+          <span className="text-[10px] font-mono font-bold" style={{ color: '#B4A99E' }}>Page I (Front Cover)</span>
           <div 
             style={{
               width: `${paperSize.width * scale * 0.5}px`, // scaled 50% for grid representation
@@ -151,7 +152,7 @@ export default function PrintManager({ book, settings, scale }: PrintManagerProp
 
           return (
             <div key={index} className="flex flex-col items-center gap-2 relative">
-              <span className="text-[10px] font-mono font-bold text-slate-400">
+              <span className="text-[10px] font-mono font-bold" style={{ color: '#B4A99E' }}>
                 Page {absolutePageNum} ({page.isRightPage ? 'Right' : 'Left'})
               </span>
               
@@ -170,7 +171,7 @@ export default function PrintManager({ book, settings, scale }: PrintManagerProp
               >
                 {/* Crop/Trim marks simulation on miniature layout */}
                 {settings.showCropMarks && (
-                  <div className="absolute inset-0 pointer-events-none border border-dashed border-indigo-200" />
+                  <div className="absolute inset-0 pointer-events-none border border-dashed" style={{ borderColor: '#D0C4B4' }} />
                 )}
 
                 {/* Simulated running head */}
@@ -191,22 +192,22 @@ export default function PrintManager({ book, settings, scale }: PrintManagerProp
                 )}
 
                 {/* Content preview */}
-                <div className="h-full overflow-hidden leading-snug whitespace-pre-wrap text-[7px] text-slate-700">
+                <div className="h-full overflow-hidden leading-snug whitespace-pre-wrap text-[7px]" style={{ color: '#7A6F66' }}>
                   {page.text}
                 </div>
 
                 {/* Simulated page numbers */}
                 {settings.showPageNumbers && (
-                  <div className="text-[6px] font-mono text-slate-400 mt-1 leading-none pt-0.5 flex justify-between">
+                  <div className="text-[6px] font-mono mt-1 leading-none pt-0.5 flex justify-between" style={{ color: '#B4A99E' }}>
                     {!page.isRightPage ? (
                       <>
-                        <span className="font-bold text-indigo-600 font-mono block">{absolutePageNum}</span>
+                        <span className="font-bold font-mono block" style={{ color: '#B5714A' }}>{absolutePageNum}</span>
                         <span className="opacity-0">.</span>
                       </>
                     ) : (
                       <>
                         <span className="opacity-0">.</span>
-                        <span className="font-bold text-indigo-600 font-mono block">{absolutePageNum}</span>
+                        <span className="font-bold font-mono block" style={{ color: '#B5714A' }}>{absolutePageNum}</span>
                       </>
                     )}
                   </div>

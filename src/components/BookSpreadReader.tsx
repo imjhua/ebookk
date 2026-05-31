@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Book, Page, PageLayoutType, PrintSettings, PRESET_PAPER_SIZES } from '../types';
-import { ArrowLeft, ArrowRight, BookOpen, Layers, SunDim, Compass } from 'lucide-react';
+
+export type PaperTheme = 'creamy' | 'white' | 'sepia' | 'dark';
 
 interface BookSpreadReaderProps {
   book: Book;
@@ -13,6 +14,9 @@ interface BookSpreadReaderProps {
   scale: number;
   onUpdatePageText: (pageId: string, text: string) => void;
   isEditMode: boolean;
+  viewMode: 'single' | 'double';
+  currentPageSpread: number;
+  paperTheme: PaperTheme;
 }
 
 export default function BookSpreadReader({
@@ -21,10 +25,10 @@ export default function BookSpreadReader({
   scale,
   onUpdatePageText,
   isEditMode,
+  viewMode,
+  currentPageSpread,
+  paperTheme,
 }: BookSpreadReaderProps) {
-  const [currentPageSpread, setCurrentPageSpread] = useState(0);
-  const [paperTheme, setPaperTheme] = useState<'creamy' | 'white' | 'sepia' | 'dark'>('creamy');
-  const [viewMode, setViewMode] = useState<'double' | 'single'>('double');
 
   const paperSize = PRESET_PAPER_SIZES.find((p) => p.id === settings.paperSizeId) || PRESET_PAPER_SIZES[0];
   const pages = book.pages;
@@ -34,10 +38,10 @@ export default function BookSpreadReader({
   const fontPx = settings.fontSize * ptToMm * scale;
 
   const themeClasses = {
-    creamy: { bg: 'bg-[#FAF6EC]', text: 'text-[#2C261F]', deskBg: 'bg-[#ECE5D8]' },
-    white:  { bg: 'bg-[#FFFFFF]', text: 'text-slate-800',  deskBg: 'bg-slate-100' },
-    sepia:  { bg: 'bg-[#EBDCB9]', text: 'text-[#432A15]',  deskBg: 'bg-[#DAC292]' },
-    dark:   { bg: 'bg-[#2E2E2E]', text: 'text-[#ECECE2]',  deskBg: 'bg-[#1C1C1C]' },
+    creamy: { bg: 'bg-[#FAF6EC]', text: 'text-[#2C261F]', deskBg: '#ECE5D8' },
+    white:  { bg: 'bg-[#FFFFFF]', text: 'text-slate-800',  deskBg: '#f1f5f9' },
+    sepia:  { bg: 'bg-[#EBDCB9]', text: 'text-[#432A15]',  deskBg: '#DAC292' },
+    dark:   { bg: 'bg-[#2E2E2E]', text: 'text-[#ECECE2]',  deskBg: '#1C1C1C' },
   }[paperTheme];
 
   const fontClass = {
@@ -46,18 +50,6 @@ export default function BookSpreadReader({
     'Fira Code':        'font-mono',
     'Playfair Display': 'font-serif',
   }[settings.fontFamily] || 'font-serif';
-
-  const handlePrev = () => {
-    const step = viewMode === 'double' ? 2 : 1;
-    setCurrentPageSpread(Math.max(0, currentPageSpread - step));
-  };
-
-  const handleNext = () => {
-    const step = viewMode === 'double' ? 2 : 1;
-    if (currentPageSpread + step < totalPages) {
-      setCurrentPageSpread(currentPageSpread + step);
-    }
-  };
 
   // ─── LAYOUT-AWARE PAGE RENDERER ───
   const renderPage = (pageIndex: number, isRightPage: boolean) => {
@@ -197,8 +189,8 @@ export default function BookSpreadReader({
               className="absolute flex justify-between text-[11px] font-mono leading-none text-current/60 select-none"
             >
               {!isRightPage
-                ? <><span className="font-bold text-indigo-600/80">{pageNum}</span><span className="opacity-0">.</span></>
-                : <><span className="opacity-0">.</span><span className="font-bold text-indigo-600/80">{pageNum}</span></>
+                ? <><span className="font-bold text-[#B5714A]/80">{pageNum}</span><span className="opacity-0">.</span></>
+                : <><span className="opacity-0">.</span><span className="font-bold text-[#B5714A]/80">{pageNum}</span></>
               }
             </div>
           )}
@@ -323,8 +315,8 @@ export default function BookSpreadReader({
             className="absolute flex justify-between text-[11px] font-mono leading-none text-current/60 select-none"
           >
             {!isRightPage
-              ? <><span className="font-bold text-indigo-600/80">{pageNum}</span><span className="opacity-0">.</span></>
-              : <><span className="opacity-0">.</span><span className="font-bold text-indigo-600/80">{pageNum}</span></>
+              ? <><span className="font-bold text-[#B5714A]/80">{pageNum}</span><span className="opacity-0">.</span></>
+              : <><span className="opacity-0">.</span><span className="font-bold text-[#B5714A]/80">{pageNum}</span></>
             }
           </div>
         )}
@@ -341,114 +333,27 @@ export default function BookSpreadReader({
   const leftPageIndex  = currentPageSpread;
   const rightPageIndex = currentPageSpread + 1;
 
-  const isAtStart = currentPageSpread === 0;
-  const isAtEnd   = viewMode === 'double'
-    ? currentPageSpread + 2 >= totalPages
-    : currentPageSpread + 1 >= totalPages;
-
   return (
-    <div className="flex flex-col gap-6 w-full items-center">
-
-      {/* Controls Bar */}
-      <div className="flex flex-wrap justify-between items-center w-full max-w-6xl bg-white border border-slate-100 rounded-2xl p-4 gap-4 shadow-sm relative z-10">
-        <div className="flex items-center gap-2">
-          <BookOpen className="text-indigo-600" size={18} />
-          <span className="text-sm font-semibold text-slate-800">책장 시뮬레이터</span>
-          <div className="h-4 w-px bg-slate-200 mx-2" />
-          <span className="text-xs text-slate-500 font-mono">
-            {totalPages}p — {book.title}
-          </span>
+    <div className="w-full flex justify-center items-start overflow-auto py-10 px-6 min-h-full transition-colors duration-200 scrollbar-thin"
+      style={{ backgroundColor: themeClasses.deskBg }}
+    >
+      {viewMode === 'double' ? (
+        <div className="relative flex justify-center drop-shadow-2xl">
+          <div className="absolute inset-0 bg-[#3a4454]/10 rounded-2xl -m-2 opacity-50 blur-xl pointer-events-none" />
+          {renderPage(leftPageIndex, false)}
+          {/* Spine */}
+          <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-8 pointer-events-none z-30 flex">
+            <div className="w-1/2 h-full bg-gradient-to-r from-black/8 via-black/18 to-transparent" />
+            <div className="w-1/2 h-full bg-gradient-to-l from-black/8 via-black/18 to-transparent" />
+            <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-0.5 bg-black/40 shadow-[0_0_2px_rgba(0,0,0,0.5)]" />
+          </div>
+          {renderPage(rightPageIndex, true)}
         </div>
-
-        <div className="flex items-center gap-3">
-          {/* View Mode Toggle */}
-          <div className="flex bg-slate-100 p-0.5 rounded-lg border border-slate-200/50">
-            <button
-              onClick={() => { setViewMode('double'); setCurrentPageSpread(Math.floor(currentPageSpread / 2) * 2); }}
-              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${viewMode === 'double' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              <Compass size={13} /> 양면 보기
-            </button>
-            <button
-              onClick={() => setViewMode('single')}
-              className={`flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${viewMode === 'single' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-            >
-              <Layers size={13} /> 단면 보기
-            </button>
-          </div>
-
-          <div className="h-4 w-px bg-slate-200" />
-
-          {/* Paper Theme */}
-          <div className="flex items-center gap-1.5">
-            <SunDim className="text-slate-400" size={14} />
-            <div className="flex gap-1">
-              {(['creamy', 'white', 'sepia', 'dark'] as const).map((theme) => {
-                const colors = {
-                  creamy: 'bg-[#FAF6EC] border-[#F2EADA]',
-                  white:  'bg-white border-slate-200',
-                  sepia:  'bg-[#EBDCB9] border-[#DECA9E]',
-                  dark:   'bg-[#2E2E2E] border-[#242424]',
-                }[theme];
-                return (
-                  <button
-                    key={theme}
-                    onClick={() => setPaperTheme(theme)}
-                    className={`w-5 h-5 rounded-full border cursor-pointer transition-all ${colors} ${paperTheme === theme ? 'ring-2 ring-indigo-500 ring-offset-2 scale-110' : 'hover:scale-105'}`}
-                  />
-                );
-              })}
-            </div>
-          </div>
+      ) : (
+        <div className="relative shadow-2xl rounded-sm">
+          {renderPage(currentPageSpread, currentPageSpread % 2 !== 0)}
         </div>
-      </div>
-
-      {/* Book Desk */}
-      <div className={`w-full overflow-auto py-10 px-6 rounded-3xl min-h-[500px] flex justify-center items-center ${themeClasses.deskBg} transition-colors duration-200 border border-[#000]/5 scrollbar-thin`}>
-        {viewMode === 'double' ? (
-          <div className="relative flex justify-center drop-shadow-2xl">
-            <div className="absolute inset-0 bg-[#3a4454]/10 rounded-2xl -m-2 opacity-50 blur-xl pointer-events-none" />
-            {renderPage(leftPageIndex, false)}
-            {/* Spine */}
-            <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-8 pointer-events-none z-30 flex">
-              <div className="w-1/2 h-full bg-gradient-to-r from-black/8 via-black/18 to-transparent" />
-              <div className="w-1/2 h-full bg-gradient-to-l from-black/8 via-black/18 to-transparent" />
-              <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-0.5 bg-black/40 shadow-[0_0_2px_rgba(0,0,0,0.5)]" />
-            </div>
-            {renderPage(rightPageIndex, true)}
-          </div>
-        ) : (
-          <div className="relative shadow-2xl rounded-sm">
-            {renderPage(currentPageSpread, currentPageSpread % 2 !== 0)}
-          </div>
-        )}
-      </div>
-
-      {/* Navigation */}
-      <div className="flex items-center justify-between w-full max-w-xl pb-2">
-        <button
-          onClick={handlePrev}
-          disabled={isAtStart}
-          className="flex items-center gap-2 text-xs font-semibold px-4 py-2 bg-white text-slate-700 hover:text-indigo-600 border border-slate-100 rounded-xl hover:bg-slate-50 transition-all shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          <ArrowLeft size={16} /> 이전 페이지
-        </button>
-
-        <span className="text-xs font-semibold font-mono text-slate-500 bg-slate-100 py-1.5 px-3.5 rounded-full select-none">
-          {viewMode === 'double'
-            ? `${currentPageSpread + 1}–${Math.min(totalPages, currentPageSpread + 2)}`
-            : currentPageSpread + 1
-          } / {totalPages}
-        </span>
-
-        <button
-          onClick={handleNext}
-          disabled={isAtEnd}
-          className="flex items-center gap-2 text-xs font-semibold px-4 py-2 bg-white text-slate-700 hover:text-indigo-600 border border-slate-100 rounded-xl hover:bg-slate-50 transition-all shadow-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-        >
-          다음 페이지 <ArrowRight size={16} />
-        </button>
-      </div>
+      )}
     </div>
   );
 }

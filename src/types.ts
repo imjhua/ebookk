@@ -18,12 +18,14 @@ export interface Margins {
   outer: number; // mm (Outside edges)
 }
 
-export type PageLayoutType = 'body' | 'title' | 'poem' | 'quote' | 'blank';
+export type PageLayoutType = 'cover' | 'toc' | 'chapter' | 'body' | 'quote' | 'sequence' | 'title-body' | 'blank' | 'title' | 'poem';
+export type BookTheme = 'classic' | 'modern' | 'academic' | 'zen';
 
 export interface Page {
   id: string;
   layoutType: PageLayoutType;
   content: string;
+  title?: string;
 }
 
 export interface Book {
@@ -32,8 +34,7 @@ export interface Book {
   author: string;
   subtitle?: string;
   publisher?: string;
-  coverStyle: 'minimal' | 'classic' | 'modern' | 'editorial';
-  coverTheme: 'slate' | 'navy' | 'forest' | 'terracotta' | 'parchment' | 'gold';
+  theme: BookTheme;
   pages: Page[];
 }
 

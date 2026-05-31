@@ -36,15 +36,13 @@ export default function PrintSurface({ book, settings }: PrintSurfaceProps) {
     absolutePageCounter++;
   });
 
-  // Cover Style themes mapping
-  const coverThemeColors = {
-    slate: 'bg-slate-800 text-slate-100 border-slate-700',
-    navy: 'bg-[#1E293B] text-slate-100 border-[#334155]',
-    forest: 'bg-[#14532D] text-[#ECECE2] border-[#166534]',
-    terracotta: 'bg-[#7C2D12] text-[#FEF3C7] border-[#9a3412]',
-    parchment: 'bg-[#FCFAF2] text-[#2C261F] border-[#E2D4BE]',
-    gold: 'bg-[#451A03] text-amber-200 border-[#78350F]',
-  }[book.coverTheme] || 'bg-slate-800 text-slate-100';
+  // Book theme cover colors
+  const themeConfig = {
+    classic:  { bg: '#2C261F', color: '#FAF6EC', borderClass: 'border-[#4a3f30]' },
+    modern:   { bg: '#111111', color: '#ffffff', borderClass: 'border-[#333]' },
+    academic: { bg: '#1E3A5F', color: '#ffffff', borderClass: 'border-[#2a4f80]' },
+    zen:      { bg: '#f9f9f7', color: '#333333', borderClass: 'border-[#ccc]' },
+  }[book.theme] || { bg: '#2C261F', color: '#FAF6EC', borderClass: 'border-[#4a3f30]' };
 
   return (
     <div id="print-book-surface">
@@ -53,24 +51,10 @@ export default function PrintSurface({ book, settings }: PrintSurfaceProps) {
         style={{
           width: `${paperSize.width}mm`,
           height: `${paperSize.height}mm`,
-          backgroundColor: {
-            slate: '#1e293b',
-            navy: '#1E293B',
-            forest: '#14532D',
-            terracotta: '#7C2D12',
-            parchment: '#FCFAF2',
-            gold: '#451A03',
-          }[book.coverTheme] || '#1e293b',
-          color: {
-            slate: '#f1f5f9',
-            navy: '#f1f5f9',
-            forest: '#ECECE2',
-            terracotta: '#FEF3C7',
-            parchment: '#2C261F',
-            gold: '#fde68a',
-          }[book.coverTheme] || '#f1f5f9',
+          backgroundColor: themeConfig.bg,
+          color: themeConfig.color,
         }}
-        className={`print-sheet print-cover print-bleed relative overflow-hidden flex flex-col justify-between items-center text-center p-[20mm] box-border ${coverThemeColors}`}
+        className={`print-sheet print-cover print-bleed relative overflow-hidden flex flex-col justify-between items-center text-center p-[20mm] box-border ${themeConfig.borderClass}`}
       >
         {/* Bleed outline spacer */}
         <div className="cover-border w-full h-full flex flex-col justify-between items-center py-[15mm]">
