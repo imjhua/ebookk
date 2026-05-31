@@ -209,6 +209,231 @@ export default function BookSpreadReader({
       );
     }
 
+    // ── CHAPTER layout ──
+    if (layoutType === 'chapter') {
+      return (
+        <div
+          style={{
+            width: pageWidth,
+            height: pageHeight,
+            paddingTop: `${pTopPx}px`,
+            paddingBottom: `${pBottomPx}px`,
+            paddingLeft: `${paddingLeft}px`,
+            paddingRight: `${paddingRight}px`,
+          }}
+          className={`${themeClasses.bg} ${themeClasses.text} ${fontClass} relative shadow-xl overflow-hidden flex flex-col`}
+        >
+          <div className="flex-1 flex flex-col items-center justify-center" style={{ paddingBottom: `${fontPx * 4}px` }}>
+            <span
+              className="font-mono tracking-[0.32em] uppercase block text-center"
+              style={{ fontSize: `${fontPx * 0.8}px`, opacity: 0.28, marginBottom: `${fontPx * 1.8}px` }}
+            >
+              PART
+            </span>
+            <h2
+              className="font-serif font-bold text-center break-words w-full"
+              style={{ fontSize: `${fontPx * 2.7}px`, letterSpacing: '-0.01em', lineHeight: 1.05, marginBottom: `${fontPx * 1.4}px` }}
+            >
+              {page.title || ''}
+            </h2>
+            {page.content && (
+              <p className="italic font-serif text-center" style={{ fontSize: `${fontPx * 1.05}px`, opacity: 0.55, lineHeight: 1.5 }}>
+                {page.content}
+              </p>
+            )}
+          </div>
+          {settings.showPageNumbers && (
+            <div
+              style={{ bottom: `${(settings.margins.bottom / 2.5) * scale}px`, left: `${paddingLeft}px`, width: `${(paperSize.width - settings.margins.inner - settings.margins.outer) * scale}px` }}
+              className="absolute flex justify-between text-[11px] font-mono leading-none text-current/60 select-none"
+            >
+              {!isRightPage
+                ? <><span className="font-bold text-[#B5714A]/80">{pageNum}</span><span className="opacity-0">.</span></>
+                : <><span className="opacity-0">.</span><span className="font-bold text-[#B5714A]/80">{pageNum}</span></>
+              }
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ── SEQUENCE layout ──
+    if (layoutType === 'sequence') {
+      const seqLines = page.content.split('\n').filter(Boolean);
+      const seqEntries = seqLines.map((line) => {
+        const idx = line.lastIndexOf(' ');
+        return idx === -1 ? { left: line, right: '' } : { left: line.slice(0, idx), right: line.slice(idx + 1) };
+      });
+      return (
+        <div
+          style={{
+            width: pageWidth,
+            height: pageHeight,
+            paddingTop: `${pTopPx}px`,
+            paddingBottom: `${pBottomPx}px`,
+            paddingLeft: `${paddingLeft}px`,
+            paddingRight: `${paddingRight}px`,
+            fontSize: `${fontPx}px`,
+            lineHeight: settings.lineHeight,
+          }}
+          className={`${themeClasses.bg} ${themeClasses.text} ${fontClass} relative shadow-xl overflow-hidden flex flex-col justify-between select-text`}
+        >
+          {/* Section header */}
+          {page.title && (
+            <div
+              className="shrink-0 font-mono uppercase tracking-[0.18em]"
+              style={{
+                fontSize: `${fontPx * 0.75}px`,
+                opacity: 0.45,
+                paddingBottom: `${fontPx * 0.8}px`,
+                borderBottom: '1px solid rgba(0,0,0,0.12)',
+                marginBottom: `${fontPx * 1.5}px`,
+              }}
+            >
+              {page.title}
+            </div>
+          )}
+
+          {/* Item list – read mode */}
+          {!isEditMode && (
+            <div className="flex-1 overflow-hidden" style={{ display: 'flex', flexDirection: 'column' }}>
+              {seqEntries.map((entry, i) => (
+                <div
+                  key={i}
+                  className="flex items-baseline justify-between"
+                  style={{
+                    paddingTop: `${fontPx * 0.25}px`,
+                    paddingBottom: `${fontPx * 0.25}px`,
+                    borderBottom: '1px solid rgba(0,0,0,0.07)',
+                  }}
+                >
+                  <span>{entry.left}</span>
+                  <span
+                    className="font-mono tracking-[0.18em] uppercase shrink-0"
+                    style={{ fontSize: `${fontPx * 0.78}px`, opacity: 0.5, marginLeft: `${fontPx}px` }}
+                  >
+                    {entry.right}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Edit mode – textarea */}
+          {isEditMode && (
+            <textarea
+              value={page.content}
+              onChange={(e) => onUpdatePageText(page.id, e.target.value)}
+              className="flex-1 w-full resize-none bg-transparent outline-none border-none p-0 focus:ring-0 text-current overflow-hidden"
+              style={{ fontSize: `${fontPx}px`, lineHeight: settings.lineHeight, fontFamily: 'inherit' }}
+              placeholder="항목 입력 (한 줄에 하나, 마지막 단어가 오른쪽 레이블)"
+            />
+          )}
+
+          {settings.showPageNumbers && (
+            <div
+              style={{ bottom: `${(settings.margins.bottom / 2.5) * scale}px`, left: `${paddingLeft}px`, width: `${(paperSize.width - settings.margins.inner - settings.margins.outer) * scale}px` }}
+              className="absolute flex justify-between text-[11px] font-mono leading-none text-current/60 select-none"
+            >
+              {!isRightPage
+                ? <><span className="font-bold text-[#B5714A]/80">{pageNum}</span><span className="opacity-0">.</span></>
+                : <><span className="opacity-0">.</span><span className="font-bold text-[#B5714A]/80">{pageNum}</span></>
+              }
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ── TITLE-BODY layout ──
+    if (layoutType === 'title-body') {
+      return (
+        <div
+          id={`preview-page-${pageNum}`}
+          style={{
+            width: pageWidth,
+            height: pageHeight,
+            paddingTop: `${pTopPx}px`,
+            paddingBottom: `${pBottomPx}px`,
+            paddingLeft: `${paddingLeft}px`,
+            paddingRight: `${paddingRight}px`,
+            fontSize: `${fontPx}px`,
+            lineHeight: settings.lineHeight,
+          }}
+          className={`${themeClasses.bg} ${themeClasses.text} ${fontClass} relative shadow-xl overflow-hidden flex flex-col justify-between select-text`}
+        >
+          {/* Running Head – section title */}
+          {settings.showRunningHead && page.title && (
+            <div
+              style={{
+                top: `${(settings.margins.top / 2.5) * scale}px`,
+                left: `${paddingLeft}px`,
+                width: `${(paperSize.width - settings.margins.inner - settings.margins.outer) * scale}px`,
+              }}
+              className="absolute border-b border-current/10 pb-1.5 flex justify-between text-[11px] font-mono tracking-widest leading-none text-current/50 select-none uppercase"
+            >
+              <span className="truncate">{page.title}</span>
+            </div>
+          )}
+
+          {/* Body */}
+          <div className="h-full w-full overflow-hidden relative">
+            {isEditMode ? (
+              <textarea
+                value={page.content}
+                onChange={(e) => onUpdatePageText(page.id, e.target.value)}
+                className="w-full h-full resize-none bg-transparent outline-none border-none p-0 focus:ring-0 text-current overflow-hidden"
+                style={{ fontSize: `${fontPx}px`, lineHeight: settings.lineHeight, fontFamily: 'inherit' }}
+                placeholder="내용을 채워 넣어보세요..."
+              />
+            ) : (
+              <div
+                className="w-full h-full overflow-hidden"
+                style={{ fontSize: `${fontPx}px`, lineHeight: settings.lineHeight }}
+              >
+                {page.content.length > 0 && (
+                  <span
+                    style={{
+                      float: 'left',
+                      fontSize: `${fontPx * 3.4}px`,
+                      lineHeight: 0.82,
+                      marginRight: `${fontPx * 0.08}px`,
+                      marginTop: `${fontPx * 0.06}px`,
+                      fontWeight: 700,
+                      fontFamily: 'inherit',
+                    }}
+                  >
+                    {page.content[0]}
+                  </span>
+                )}
+                <span className="whitespace-pre-wrap break-words">
+                  {page.content.length > 0 ? page.content.slice(1) : ''}
+                </span>
+              </div>
+            )}
+          </div>
+
+          {settings.showPageNumbers && (
+            <div
+              style={{ bottom: `${(settings.margins.bottom / 2.5) * scale}px`, left: `${paddingLeft}px`, width: `${(paperSize.width - settings.margins.inner - settings.margins.outer) * scale}px` }}
+              className="absolute flex justify-between text-[11px] font-mono leading-none text-current/60 select-none"
+            >
+              {!isRightPage
+                ? <><span className="font-bold text-[#B5714A]/80">{pageNum}</span><span className="opacity-0">.</span></>
+                : <><span className="opacity-0">.</span><span className="font-bold text-[#B5714A]/80">{pageNum}</span></>
+              }
+            </div>
+          )}
+
+          {isEditMode && page.content.length > 550 && (
+            <div className="absolute right-2 bottom-2 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5 text-[8px] font-sans text-amber-700/80 pointer-events-none select-none">
+              본문 분량 많음
+            </div>
+          )}
+        </div>
+      );
+    }
+
     // ── BLANK layout ──
     if (layoutType === 'blank') {
       return (
@@ -331,20 +556,16 @@ export default function BookSpreadReader({
     if (layoutType === 'quote') {
       return (
         <div
-          style={{ width: pageWidth, height: pageHeight, paddingLeft, paddingRight }}
+          style={{
+            width: pageWidth,
+            height: pageHeight,
+            paddingTop: `${pTopPx}px`,
+            paddingBottom: `${pBottomPx}px`,
+            paddingLeft: `${paddingLeft}px`,
+            paddingRight: `${paddingRight}px`,
+          }}
           className={`${themeClasses.bg} ${themeClasses.text} ${fontClass} relative shadow-xl overflow-hidden flex items-center justify-center`}
         >
-          <div className="absolute inset-0 pointer-events-none opacity-[0.025] mix-blend-overlay bg-[radial-gradient(#000_1px,transparent_1px)] [background-size:12px_12px]" />
-
-          {/* Decorative quote mark */}
-          <div
-            className="absolute top-[15%] left-0 right-0 text-center pointer-events-none select-none text-current/10 font-serif leading-none"
-            style={{ fontSize: `${fontPx * 8}px` }}
-            aria-hidden
-          >
-            "
-          </div>
-
           <div className="relative z-10 w-full text-center">
             {isEditMode ? (
               <textarea
@@ -352,21 +573,29 @@ export default function BookSpreadReader({
                 onChange={(e) => onUpdatePageText(page.id, e.target.value)}
                 placeholder="인용구 텍스트 입력..."
                 className="w-full resize-none bg-transparent outline-none border-none p-0 focus:ring-0 text-center overflow-hidden italic"
-                style={{
-                  fontSize: `${fontPx * 1.3}px`,
-                  lineHeight: settings.lineHeight * 1.2,
-                  fontFamily: 'inherit',
-                }}
+                style={{ fontSize: `${fontPx * 1.65}px`, lineHeight: settings.lineHeight * 1.15, fontFamily: 'inherit' }}
               />
             ) : (
               <div
                 className="whitespace-pre-wrap break-words italic"
-                style={{ fontSize: `${fontPx * 1.3}px`, lineHeight: settings.lineHeight * 1.2 }}
+                style={{ fontSize: `${fontPx * 1.65}px`, lineHeight: settings.lineHeight * 1.15 }}
               >
                 {page.content}
               </div>
             )}
           </div>
+
+          {settings.showPageNumbers && (
+            <div
+              style={{ bottom: `${(settings.margins.bottom / 2.5) * scale}px`, left: `${paddingLeft}px`, width: `${(paperSize.width - settings.margins.inner - settings.margins.outer) * scale}px` }}
+              className="absolute flex justify-between text-[11px] font-mono leading-none text-current/60 select-none"
+            >
+              {!isRightPage
+                ? <><span className="font-bold text-[#B5714A]/80">{pageNum}</span><span className="opacity-0">.</span></>
+                : <><span className="opacity-0">.</span><span className="font-bold text-[#B5714A]/80">{pageNum}</span></>
+              }
+            </div>
+          )}
         </div>
       );
     }
@@ -425,10 +654,27 @@ export default function BookSpreadReader({
             />
           ) : (
             <div
-              className="w-full h-full whitespace-pre-wrap break-words overflow-hidden"
+              className="w-full h-full overflow-hidden"
               style={{ fontSize: `${fontPx}px`, lineHeight: settings.lineHeight }}
             >
-              {page.content}
+              {page.content.length > 0 && (
+                <span
+                  style={{
+                    float: 'left',
+                    fontSize: `${fontPx * 3.4}px`,
+                    lineHeight: 0.82,
+                    marginRight: `${fontPx * 0.08}px`,
+                    marginTop: `${fontPx * 0.06}px`,
+                    fontWeight: 700,
+                    fontFamily: 'inherit',
+                  }}
+                >
+                  {page.content[0]}
+                </span>
+              )}
+              <span className="whitespace-pre-wrap break-words">
+                {page.content.length > 0 ? page.content.slice(1) : ''}
+              </span>
             </div>
           )}
         </div>

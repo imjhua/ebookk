@@ -244,7 +244,25 @@ export default function BookEditor({
                   );
                 })()}
 
-                {['body', 'quote', 'sequence', 'title-body'].includes(currentPage.layoutType) && (
+                {['sequence', 'title-body'].includes(currentPage.layoutType) && (
+                  <div className="space-y-3">
+                    <FieldInput
+                      label="페이지 제목"
+                      value={currentPage.title || ''}
+                      onChange={(v) => onUpdatePageMeta(currentPage.id, { title: v })}
+                      placeholder="섹션 제목 입력"
+                    />
+                    <FieldInput
+                      label="내용"
+                      value={currentPage.content}
+                      onChange={(v) => onUpdatePageMeta(currentPage.id, { content: v })}
+                      placeholder="내용 입력"
+                      multiline
+                    />
+                  </div>
+                )}
+
+                {['body', 'quote'].includes(currentPage.layoutType) && (
                   <div className="rounded-xl px-3 py-3 text-[11px]" style={{ backgroundColor: '#F5F0E8', color: '#B4A99E' }}>
                     지면을 직접 클릭하여 본문을 편집하세요.
                   </div>
