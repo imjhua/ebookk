@@ -4,14 +4,12 @@
  */
 
 import React, { useState } from 'react';
-import { Book, Page, PageLayoutType, PrintSettings, PRESET_PAPER_SIZES } from './types';
+import { Book, Page, PageLayoutType, PrintSettings } from './types';
 import { BOOKS_TEMPLATES } from './bookTemplates';
 import BookEditor from './components/BookEditor';
 import PrintSurface from './components/PrintSurface';
 import DocumentStructure from './components/DocumentStructure';
 import {
-  Sparkles,
-  Layers,
   Eye,
   Edit2,
   ChevronLeft,
@@ -23,9 +21,7 @@ import {
 import BookSpreadReader, { PaperTheme } from './components/BookSpreadReader';
 
 export default function App() {
-  // Library
-  const [booksList, setBooksList] = useState<Book[]>(BOOKS_TEMPLATES);
-  const [selectedBookId, setSelectedBookId] = useState<string>(BOOKS_TEMPLATES[0].id);
+  const [book, setBook] = useState<Book>(BOOKS_TEMPLATES[0]);
 
   // Edit vs read mode
   const [isEditMode, setIsEditMode] = useState<boolean>(true);
@@ -60,8 +56,7 @@ export default function App() {
     localStorage.setItem('prepress-calibration-scale', newScale.toString());
   };
 
-  const currentBook = booksList.find((b) => b.id === selectedBookId) || booksList[0];
-  const totalPages = currentBook.pages.length;
+  const totalPages = book.pages.length;
 
   // ── Page selection (syncs spread) ──
   const handleSelectPage = (index: number) => {
@@ -96,21 +91,21 @@ export default function App() {
 
   // ── Book mutations ──
   const handleUpdatePageText = (pageId: string, text: string) => {
-    const updatedPages = currentBook.pages.map((p) =>
+    const updatedPages = book.pages.map((p) =>
       p.id === pageId ? { ...p, content: text } : p
     );
-    handleUpdateBook({ ...currentBook, pages: updatedPages });
+    handleUpdateBook({ ...book, pages: updatedPages });
   };
 
   const handleUpdateBook = (updatedBook: Book) => {
-    setBooksList(booksList.map((b) => (b.id === updatedBook.id ? updatedBook : b)));
+    setBook(updatedBook);
   };
 
   const handleUpdatePageMeta = (pageId: string, updates: Partial<Pick<Page, 'title' | 'content'>>) => {
-    const updatedPages = currentBook.pages.map((p) =>
+    const updatedPages = book.pages.map((p) =>
       p.id === pageId ? { ...p, ...updates } : p
     );
-    handleUpdateBook({ ...currentBook, pages: updatedPages });
+    handleUpdateBook({ ...book, pages: updatedPages });
   };
 
   const handleUpdatePageTitle = (pageId: string, title: string) => {
@@ -123,18 +118,18 @@ export default function App() {
     const newPage: Page = { id: `p-${ts}`, layoutType, content: '', title: '' };
     const insertIndex = selectedPageIndex + 1;
     const updatedPages = [
-      ...currentBook.pages.slice(0, insertIndex),
+      ...book.pages.slice(0, insertIndex),
       newPage,
-      ...currentBook.pages.slice(insertIndex),
+      ...book.pages.slice(insertIndex),
     ];
-    handleUpdateBook({ ...currentBook, pages: updatedPages });
+    handleUpdateBook({ ...book, pages: updatedPages });
     handleSelectPage(insertIndex);
   };
 
   const handleDeletePage = (pageId: string) => {
-    const pageIndex = currentBook.pages.findIndex((p) => p.id === pageId);
-    const updatedPages = currentBook.pages.filter((p) => p.id !== pageId);
-    handleUpdateBook({ ...currentBook, pages: updatedPages });
+    const pageIndex = book.pages.findIndex((p) => p.id === pageId);
+    const updatedPages = book.pages.filter((p) => p.id !== pageId);
+    handleUpdateBook({ ...book, pages: updatedPages });
     const newIdx = pageIndex >= updatedPages.length
       ? Math.max(0, updatedPages.length - 1)
       : pageIndex < selectedPageIndex
@@ -144,32 +139,11 @@ export default function App() {
   };
 
   const handleReorderPages = (pages: Page[]) => {
-    handleUpdateBook({ ...currentBook, pages });
+    handleUpdateBook({ ...book, pages });
   };
 
   const handlePrint = () => {
     window.print();
-  };
-
-  const handleCreateNewBook = () => {
-    const ts = Date.now();
-    const newBook: Book = {
-      id: `book-${ts}`,
-      title: '새로운 독립출판 단행본',
-      author: '지은이 이름',
-      subtitle: '아름다운 서지 설명',
-      publisher: '내 방 서재 출판',
-      theme: 'classic',
-      pages: [
-        { id: `p-${ts}-1`, layoutType: 'title',  content: '새로운 책' } as Page,
-        { id: `p-${ts}-2`, layoutType: 'body',   content: '여기에 첫 번째 페이지 내용을 입력해 주세요.' } as Page,
-      ],
-    };
-    setBooksList([...booksList, newBook]);
-    setSelectedBookId(newBook.id);
-    setIsEditMode(true);
-    setSelectedPageIndex(0);
-    setCurrentPageSpread(0);
   };
 
   const spreadLabel = viewMode === 'double'
@@ -186,48 +160,12 @@ export default function App() {
   return (
     <div className="h-screen flex flex-col font-sans" style={{ backgroundColor: '#FDFAF6', color: '#2A2420' }}>
 
-      {/* ── HEADER ── */}
-      <nav
-        className="shrink-0 no-print flex items-center justify-between px-5 h-[52px]"
-        style={{ backgroundColor: '#FDFAF6', borderBottom: '1px solid #E8E0D4' }}
-      >
-        {/* Brand */}
-        <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: '#2A2420' }}>
-            <Layers size={14} className="text-white" />
-          </div>
-          <span className="text-[12px] font-bold tracking-tight uppercase" style={{ color: '#2A2420' }}>PRESLY</span>
-          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded font-mono" style={{ backgroundColor: '#E8E0D4', color: '#7A6F66' }}>v1.1</span>
-        </div>
-
-        {/* Book selector + actions */}
-        <div className="flex items-center gap-2">
-          <select
-            value={selectedBookId}
-            onChange={(e) => { setSelectedBookId(e.target.value); setSelectedPageIndex(0); setCurrentPageSpread(0); }}
-            className="text-[11px] font-medium px-3 py-1.5 rounded-lg cursor-pointer outline-none"
-            style={{ backgroundColor: '#F5F0E8', border: '1px solid #E8E0D4', color: '#2A2420' }}
-          >
-            {booksList.map((b) => (
-              <option key={b.id} value={b.id}>{b.title}</option>
-            ))}
-          </select>
-          <button
-            onClick={handleCreateNewBook}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer"
-            style={{ backgroundColor: '#F5F0E8', border: '1px solid #E8E0D4', color: '#2A2420' }}
-          >
-            <Sparkles size={12} /> 새 책
-          </button>
-        </div>
-      </nav>
-
       {/* ── MAIN 3-COLUMN LAYOUT ── */}
       <main className="flex-1 flex overflow-hidden no-print">
 
         {/* ── LEFT: Page Navigation ── */}
         <DocumentStructure
-          book={currentBook}
+          book={book}
           selectedPageIndex={selectedPageIndex}
           onSelectPage={handleSelectPage}
           onAddPage={handleAddPage}
@@ -332,7 +270,7 @@ export default function App() {
           {/* Book Display */}
           <div className="flex-1 overflow-auto">
             <BookSpreadReader
-              book={currentBook}
+              book={book}
               settings={settings}
               scale={scale}
               onUpdatePageText={handleUpdatePageText}
@@ -346,7 +284,7 @@ export default function App() {
 
         {/* ── RIGHT: Options Panel ── */}
         <BookEditor
-          book={currentBook}
+          book={book}
           settings={settings}
           selectedPageIndex={selectedPageIndex}
           scale={scale}
@@ -359,7 +297,7 @@ export default function App() {
       </main>
 
       {/* Printable DOM (hidden on screen) */}
-      <PrintSurface book={currentBook} settings={settings} />
+      <PrintSurface book={book} settings={settings} />
     </div>
   );
 }
