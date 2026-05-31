@@ -4,8 +4,8 @@
  */
 
 import React, { useState } from 'react';
-import { Book, BookTheme, Page, PageLayoutType, PrintSettings, Margins, PRESET_PAPER_SIZES } from '../types';
-import { Printer, FileText, Ruler, BookOpen, Compass } from 'lucide-react';
+import { Book, BookTheme, Page, PageLayoutType, PrintSettings, Margins, PRESET_PAPER_SIZES, TocEntry } from '../types';
+import { Printer, FileText, Ruler, BookOpen, Compass, Plus, Trash2 } from 'lucide-react';
 import Calibration from './Calibration';
 
 const THEME_BUTTONS: { id: BookTheme; label: string }[] = [
@@ -155,9 +155,94 @@ export default function BookEditor({
                   </div>
                 )}
 
-                {currentPage.layoutType === 'toc' && (
-                  <FieldInput label="목차 텍스트" value={currentPage.content} onChange={(v) => onUpdatePageMeta(currentPage.id, { content: v })} placeholder="목차 내용 입력" multiline />
-                )}
+                {currentPage.layoutType === 'toc' && (() => {
+                  let entries: TocEntry[] = [];
+                  try { entries = JSON.parse(currentPage.content); } catch { entries = []; }
+                  const updateEntries = (next: TocEntry[]) =>
+                    onUpdatePageMeta(currentPage.id, { content: JSON.stringify(next) });
+                  return (
+                    <div className="space-y-3">
+                      <FieldInput
+                        label="목차 제목"
+                        value={currentPage.title || ''}
+                        onChange={(v) => onUpdatePageMeta(currentPage.id, { title: v })}
+                        placeholder="예: 목차"
+                      />
+                      <div>
+                        <span className="block text-[10px] font-semibold mb-2" style={{ color: '#B4A99E' }}>목차 항목</span>
+                        <div className="space-y-2">
+                          {entries.map((entry, i) => (
+                            <div key={i} className="rounded-xl p-3 space-y-2" style={{ backgroundColor: '#F5F0E8', border: '1px solid #E8E0D4' }}>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <span className="text-[9px] font-bold block mb-1" style={{ color: '#B4A99E' }}>CHAPTER</span>
+                                  <input
+                                    type="text"
+                                    value={entry.chapter}
+                                    onChange={(e) => {
+                                      const next = [...entries];
+                                      next[i] = { ...next[i], chapter: e.target.value };
+                                      updateEntries(next);
+                                    }}
+                                    className="w-full text-[10px] px-2 py-1 rounded-md outline-none"
+                                    style={{ backgroundColor: '#fff', border: '1px solid #E8E0D4', color: '#2A2420', fontFamily: 'inherit' }}
+                                  />
+                                </div>
+                                <div>
+                                  <span className="text-[9px] font-bold block mb-1" style={{ color: '#B4A99E' }}>PAGE #</span>
+                                  <input
+                                    type="number"
+                                    value={entry.pageNum}
+                                    onChange={(e) => {
+                                      const next = [...entries];
+                                      next[i] = { ...next[i], pageNum: parseInt(e.target.value) || 0 };
+                                      updateEntries(next);
+                                    }}
+                                    className="w-full text-[10px] px-2 py-1 rounded-md outline-none"
+                                    style={{ backgroundColor: '#fff', border: '1px solid #E8E0D4', color: '#2A2420', fontFamily: 'inherit' }}
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <span className="text-[9px] font-bold block mb-1" style={{ color: '#B4A99E' }}>TITLE</span>
+                                <div className="flex gap-1.5">
+                                  <input
+                                    type="text"
+                                    value={entry.title}
+                                    onChange={(e) => {
+                                      const next = [...entries];
+                                      next[i] = { ...next[i], title: e.target.value };
+                                      updateEntries(next);
+                                    }}
+                                    className="flex-1 text-[10px] px-2 py-1 rounded-md outline-none"
+                                    style={{ backgroundColor: '#fff', border: '1px solid #E8E0D4', color: '#2A2420', fontFamily: 'inherit' }}
+                                  />
+                                  <button
+                                    onClick={() => updateEntries(entries.filter((_, j) => j !== i))}
+                                    className="px-2 py-1 rounded-md flex items-center justify-center"
+                                    style={{ backgroundColor: '#FFE8E8', color: '#C0392B' }}
+                                  >
+                                    <Trash2 size={11} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                          <button
+                            onClick={() => updateEntries([
+                              ...entries,
+                              { chapter: `Chapter ${String(entries.length + 1).padStart(2, '0')}`, pageNum: 0, title: '' },
+                            ])}
+                            className="w-full py-2 rounded-xl text-[11px] font-semibold flex items-center justify-center gap-1.5"
+                            style={{ backgroundColor: '#F5F0E8', border: '1px dashed #D0C8BE', color: '#7A6F66' }}
+                          >
+                            <Plus size={12} /> 항목 추가
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {['body', 'quote', 'sequence', 'title-body'].includes(currentPage.layoutType) && (
                   <div className="rounded-xl px-3 py-3 text-[11px]" style={{ backgroundColor: '#F5F0E8', color: '#B4A99E' }}>

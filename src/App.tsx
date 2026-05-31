@@ -3,8 +3,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Book, Page, PageLayoutType, PrintSettings } from './types';
+import { useEbookSheet } from './hooks/useEbookSheet';
 import { BOOKS_TEMPLATES } from './bookTemplates';
 import BookEditor from './components/BookEditor';
 import PrintSurface from './components/PrintSurface';
@@ -17,6 +18,8 @@ import {
   BookOpen,
   BookMarked,
   SunDim,
+  Download,
+  Upload,
 } from 'lucide-react';
 import BookSpreadReader, { PaperTheme } from './components/BookSpreadReader';
 
@@ -55,6 +58,33 @@ export default function App() {
     setScale(newScale);
     localStorage.setItem('prepress-calibration-scale', newScale.toString());
   };
+
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzuKJeAilzBvMxixy4DK4vxnhxinpbAlQhRMsmym5WpCDMUhClmvdjzodGTwXPDXXVr/exec';
+  const { status: gasStatus, message: gasMessage, loadFromSheets, saveToSheets } = useEbookSheet(GAS_URL);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+  // 앱 시작 시 Google Sheets에서 자동 로드
+  useEffect(() => {
+    (async () => {
+      const result = await loadFromSheets(book);
+      if (result) {
+        setBook(result.book);
+        if (result.paperSizeId) {
+          setSettings((prev) => ({
+            ...prev,
+            paperSizeId: result.paperSizeId!,
+            ...(result.bindingMargin != null && {
+              margins: { ...prev.margins, inner: result.bindingMargin! },
+            }),
+          }));
+        }
+        setSelectedPageIndex(0);
+        setCurrentPageSpread(0);
+      }
+      setIsInitialLoading(false);
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const totalPages = book.pages.length;
 
@@ -146,6 +176,28 @@ export default function App() {
     window.print();
   };
 
+  const handleSaveToSheets = async () => {
+    await saveToSheets(book, settings);
+  };
+
+  const handleLoadFromSheets = async () => {
+    const result = await loadFromSheets(book);
+    if (result) {
+      setBook(result.book);
+      if (result.paperSizeId) {
+        setSettings((prev) => ({
+          ...prev,
+          paperSizeId: result.paperSizeId!,
+          ...(result.bindingMargin != null && {
+            margins: { ...prev.margins, inner: result.bindingMargin! },
+          }),
+        }));
+      }
+      setSelectedPageIndex(0);
+      setCurrentPageSpread(0);
+    }
+  };
+
   const spreadLabel = viewMode === 'double'
     ? `${currentPageSpread + 1}–${Math.min(totalPages, currentPageSpread + 2)} / ${totalPages}`
     : `${currentPageSpread + 1} / ${totalPages}`;
@@ -159,6 +211,23 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col font-sans" style={{ backgroundColor: '#FDFAF6', color: '#2A2420' }}>
+
+      {/* ── INITIAL LOADING OVERLAY ── */}
+      {isInitialLoading && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5"
+          style={{ backgroundColor: '#2C261F' }}
+        >
+          <div
+            className="w-10 h-10 rounded-full border-4 border-t-transparent animate-spin"
+            style={{ borderColor: '#FAF6EC', borderTopColor: 'transparent' }}
+          />
+          <div className="flex flex-col items-center gap-1.5">
+            <span className="text-[15px] font-serif font-semibold" style={{ color: '#FAF6EC' }}>Google Sheets에서 불러오는 중</span>
+            <span className="text-[11px] font-mono" style={{ color: 'rgba(250,246,236,0.4)' }}>잠시만 기다려 주세요…</span>
+          </div>
+        </div>
+      )}
 
       {/* ── MAIN 3-COLUMN LAYOUT ── */}
       <main className="flex-1 flex overflow-hidden no-print">
@@ -247,8 +316,45 @@ export default function App() {
               </button>
             </div>
 
-            {/* Right: Paper theme */}
-            <div className="flex items-center gap-1.5 shrink-0">
+            {/* Right: GAS + Paper theme */}
+            <div className="flex items-center gap-2 shrink-0">
+              {/* GAS Save / Load */}
+              <div className="flex items-center gap-0 rounded-lg overflow-hidden" style={{ border: '1px solid #E8E0D4' }}>
+                <button
+                  onClick={handleLoadFromSheets}
+                  disabled={gasStatus === 'loading' || gasStatus === 'saving'}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: '#FDFAF6', color: '#7A6F66' }}
+                  title="Google Sheets에서 불러오기"
+                >
+                  <Download size={12} />
+                  {gasStatus === 'loading' ? '로딩중…' : '불러오기'}
+                </button>
+                <div style={{ width: 1, height: 16, backgroundColor: '#E8E0D4', flexShrink: 0 }} />
+                <button
+                  onClick={handleSaveToSheets}
+                  disabled={gasStatus === 'loading' || gasStatus === 'saving'}
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: gasStatus === 'saving' ? '#7A4F30' : '#B5714A',
+                    color: '#fff',
+                  }}
+                  title="Google Sheets에 저장"
+                >
+                  <Upload size={12} />
+                  {gasStatus === 'saving' ? '저장중…' : '저장'}
+                </button>
+              </div>
+              {gasMessage && (
+                <span
+                  className="text-[10px] font-medium max-w-[100px] truncate shrink-0"
+                  style={{ color: gasStatus === 'error' ? '#C0392B' : '#5B8A5B' }}
+                  title={gasMessage}
+                >
+                  {gasMessage}
+                </span>
+              )}
+              <div className="shrink-0" style={{ width: 1, height: 16, backgroundColor: '#E8E0D4' }} />
               <SunDim size={13} style={{ color: '#B4A99E' }} />
               {(Object.keys(PAPER_THEME_COLORS) as PaperTheme[]).map((theme) => (
                 <button

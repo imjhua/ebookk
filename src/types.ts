@@ -21,6 +21,12 @@ export interface Margins {
 export type PageLayoutType = 'cover' | 'toc' | 'chapter' | 'body' | 'quote' | 'sequence' | 'title-body' | 'blank' | 'title' | 'poem';
 export type BookTheme = 'classic' | 'modern' | 'academic' | 'zen';
 
+export interface TocEntry {
+  chapter: string;
+  pageNum: number;
+  title: string;
+}
+
 export interface Page {
   id: string;
   layoutType: PageLayoutType;

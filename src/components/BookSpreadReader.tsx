@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Book, Page, PageLayoutType, PrintSettings, PRESET_PAPER_SIZES } from '../types';
+import { Book, Page, PageLayoutType, PrintSettings, PRESET_PAPER_SIZES, TocEntry } from '../types';
 
 export type PaperTheme = 'creamy' | 'white' | 'sepia' | 'dark';
 
@@ -79,6 +79,135 @@ export default function BookSpreadReader({
     const paddingLeft  = isRightPage ? pInnerPx : pOuterPx;
     const paddingRight = isRightPage ? pOuterPx : pInnerPx;
     const pageNum = pageIndex + 1;
+
+    // ── COVER layout ──
+    if (layoutType === 'cover') {
+      const coverTheme = ({
+        classic:  { bg: '#2C261F', fg: '#FAF6EC', accent: '#9A8272' },
+        modern:   { bg: '#111111', fg: '#ffffff',  accent: '#888888' },
+        academic: { bg: '#1E3A5F', fg: '#ffffff',  accent: '#6b9bd2' },
+        zen:      { bg: '#f9f9f7', fg: '#333333',  accent: '#999999' },
+      } as Record<string, { bg: string; fg: string; accent: string }>)[book.theme]
+        || { bg: '#2C261F', fg: '#FAF6EC', accent: '#9A8272' };
+
+      return (
+        <div
+          style={{ width: pageWidth, height: pageHeight, backgroundColor: coverTheme.bg, color: coverTheme.fg }}
+          className="relative shadow-xl overflow-hidden flex flex-col items-center justify-center text-center"
+        >
+          <div className="w-full h-full flex flex-col justify-between items-center py-[12%] px-[12%]">
+            <div className="flex flex-col items-center gap-2">
+              <span
+                className="tracking-[0.18em] font-sans uppercase opacity-70 block"
+                style={{ fontSize: `${fontPx * 0.85}px` }}
+              >
+                {book.subtitle || ''}
+              </span>
+              <div style={{ width: `${30 * scale}px`, height: 1, backgroundColor: coverTheme.accent, opacity: 0.4, marginTop: `${2 * scale}px` }} />
+              <h1
+                className="font-serif font-black leading-tight tracking-tight px-2"
+                style={{ fontSize: `${fontPx * 2.4}px`, marginTop: `${4 * scale}px` }}
+              >
+                {book.title}
+              </h1>
+              <div style={{ width: `${35 * scale}px`, height: 1, backgroundColor: coverTheme.fg, opacity: 0.25, margin: `${3 * scale}px 0` }} />
+              <p
+                className="font-serif font-medium"
+                style={{ fontSize: `${fontPx * 1.2}px`, marginTop: `${2 * scale}px`, opacity: 0.85 }}
+              >
+                {book.author}
+              </p>
+            </div>
+            <span className="font-mono tracking-widest opacity-60" style={{ fontSize: `${fontPx * 0.75}px` }}>
+              {book.publisher || ''}
+            </span>
+          </div>
+        </div>
+      );
+    }
+
+    // ── TOC layout ──
+    if (layoutType === 'toc') {
+      let entries: TocEntry[] = [];
+      try { entries = JSON.parse(page.content); } catch { entries = []; }
+
+      return (
+        <div
+          style={{
+            width: pageWidth,
+            height: pageHeight,
+            paddingTop:    `${pTopPx}px`,
+            paddingBottom: `${pBottomPx}px`,
+            paddingLeft:   `${paddingLeft}px`,
+            paddingRight:  `${paddingRight}px`,
+          }}
+          className={`${themeClasses.bg} ${themeClasses.text} ${fontClass} relative shadow-xl overflow-hidden flex flex-col justify-between`}
+        >
+          {/* Header */}
+          <div className="flex flex-col items-center text-center" style={{ marginBottom: `${fontPx * 1.8}px` }}>
+            <span
+              className="font-mono tracking-[0.3em] uppercase opacity-40 block"
+              style={{ fontSize: `${fontPx * 0.8}px` }}
+            >
+              INDEX
+            </span>
+            <h2
+              className="font-serif font-bold leading-tight"
+              style={{ fontSize: `${fontPx * 2.2}px`, margin: `${fontPx * 0.5}px 0 ${fontPx * 0.6}px` }}
+            >
+              {page.title || '목차'}
+            </h2>
+            <div style={{ width: `${20 * scale}px`, height: 1, backgroundColor: 'currentColor', opacity: 0.2 }} />
+          </div>
+
+          {/* Entry list */}
+          <div className="flex-1 overflow-hidden" style={{ display: 'flex', flexDirection: 'column', gap: `${fontPx * 1.4}px` }}>
+            {entries.map((entry, i) => (
+              <div key={i}>
+                <div className="flex items-baseline justify-between" style={{ marginBottom: `${fontPx * 0.15}px` }}>
+                  <span
+                    className="font-mono tracking-[0.2em] uppercase opacity-45"
+                    style={{ fontSize: `${fontPx * 0.78}px` }}
+                  >
+                    {entry.chapter}
+                  </span>
+                  <span
+                    className="font-mono opacity-45"
+                    style={{ fontSize: `${fontPx * 0.78}px` }}
+                  >
+                    P.{entry.pageNum}
+                  </span>
+                </div>
+                <div style={{ height: 1, backgroundColor: 'currentColor', opacity: 0.08, marginBottom: `${fontPx * 0.3}px` }} />
+                <p
+                  className="font-serif"
+                  style={{ fontSize: `${fontPx * 1.05}px`, lineHeight: 1.4 }}
+                >
+                  {entry.title}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Page number */}
+          {settings.showPageNumbers && (
+            <div
+              style={{
+                bottom: `${(settings.margins.bottom / 2.5) * scale}px`,
+                left:   `${paddingLeft}px`,
+                width:  `${(paperSize.width - settings.margins.inner - settings.margins.outer) * scale}px`,
+              }}
+              className="absolute flex justify-between text-[11px] font-mono leading-none text-current/60 select-none"
+            >
+              {!isRightPage
+                ? <><span className="font-bold text-[#B5714A]/80">{pageNum}</span><span className="opacity-0">.</span></>
+                : <><span className="opacity-0">.</span><span className="font-bold text-[#B5714A]/80">{pageNum}</span></>
+              }
+            </div>
+          )}
+        </div>
+      );
+    }
 
     // ── BLANK layout ──
     if (layoutType === 'blank') {
