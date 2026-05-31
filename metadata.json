@@ -1,0 +1,8 @@
+{
+  "name": "프레슬리 도서 제판 스튜디오",
+  "description": "실제 책 크기(A5, B6 등) 1:1 대조 보정 및 제본 여백, 재단선을 포함한 단행본 출력 지원 독립출판 제판 솔루션",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
