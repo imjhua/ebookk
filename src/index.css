@@ -139,3 +139,57 @@
     height: 100% !important;
   }
 }
+
+/* ── Range Slider Custom Styling ── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 9999px;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: #B5714A;
+  border: 2.5px solid #FDFAF6;
+  box-shadow: 0 1px 4px rgba(42, 36, 32, 0.25);
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+  box-shadow: 0 2px 8px rgba(181, 113, 74, 0.4);
+}
+
+input[type="range"]::-moz-range-track {
+  height: 4px;
+  border-radius: 9999px;
+  background: #D0C4B4;
+}
+
+input[type="range"]::-moz-range-progress {
+  height: 4px;
+  border-radius: 9999px;
+  background: #B5714A;
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #B5714A;
+  border: 2.5px solid #FDFAF6;
+  box-shadow: 0 1px 4px rgba(42, 36, 32, 0.25);
+  cursor: pointer;
+}

@@ -24,7 +24,7 @@ interface BookEditorProps {
   scale: number;
   onChangeSettings: (newSettings: PrintSettings) => void;
   onUpdateBook: (updatedBook: Book) => void;
-  onUpdatePageMeta: (pageId: string, updates: Partial<Pick<Page, 'title' | 'content'>>) => void;
+  onUpdatePageMeta: (pageId: string, updates: Partial<Pick<Page, 'title' | 'content' | 'subtitle' | 'author'>>) => void;
   onChangeScale: (scale: number) => void;
   onPrint: () => void;
 }
@@ -40,6 +40,8 @@ export default function BookEditor({
   onChangeScale,
   onPrint,
 }: BookEditorProps) {
+  console.log(book);
+  
   const [subTab, setSubTab] = useState<SubTab>('page');
 
   const currentPage = book.pages[selectedPageIndex] as Page | undefined;
@@ -47,6 +49,13 @@ export default function BookEditor({
 
   const handleMarginChange = (key: keyof Margins, value: number) => {
     onChangeSettings({ ...settings, margins: { ...settings.margins, [key]: value } });
+  };
+
+  const sliderStyle = (value: number, min: number, max: number): React.CSSProperties => {
+    const pct = ((value - min) / (max - min)) * 100;
+    return {
+      background: `linear-gradient(to right, #B5714A 0%, #B5714A ${pct}%, #D0C4B4 ${pct}%, #D0C4B4 100%)`,
+    };
   };
 
   const PAGE_TYPE_LABEL: Record<PageLayoutType, string> = {
@@ -57,9 +66,6 @@ export default function BookEditor({
     quote:       'quote',
     sequence:    'sequence',
     'title-body':'title-body',
-    blank:       'blank',
-    title:       'title',
-    poem:        'poem',
   };
 
   return (
@@ -141,9 +147,9 @@ export default function BookEditor({
 
                 {currentPage.layoutType === 'cover' && (
                   <div className="space-y-3">
-                    <FieldInput label="첫 제목"   value={book.title}           onChange={(v) => onUpdateBook({ ...book, title: v })}    placeholder="책 제목 입력" />
-                    <FieldInput label="서브타이틀" value={book.subtitle || ''}  onChange={(v) => onUpdateBook({ ...book, subtitle: v })} placeholder="부제목 입력" />
-                    <FieldInput label="저자명"     value={book.author}          onChange={(v) => onUpdateBook({ ...book, author: v })}   placeholder="작가명 입력" />
+                    <FieldInput label="커버 제목"   value={currentPage.title || ''}   onChange={(v) => onUpdatePageMeta(currentPage.id, { title: v })}   placeholder="커버에 표시될 제목" />
+                    <FieldInput label="부제목" value={currentPage.subtitle || ''} onChange={(v) => onUpdatePageMeta(currentPage.id, { subtitle: v })} placeholder="부제목 입력" />
+                    <FieldInput label="저자명"     value={currentPage.author || ''}   onChange={(v) => onUpdatePageMeta(currentPage.id, { author: v })}   placeholder="작가명 입력" />
                   </div>
                 )}
 
@@ -283,36 +289,8 @@ export default function BookEditor({
                     grow
                   />
                 )}
-
-                {currentPage.layoutType === 'title' && (
-                  <FieldInput
-                    label="제목 텍스트"
-                    value={currentPage.content}
-                    onChange={(v) => onUpdatePageMeta(currentPage.id, { content: v })}
-                    placeholder="제목 텍스트 입력..."
-                    multiline
-                    grow
-                  />
-                )}
-
-                {currentPage.layoutType === 'poem' && (
-                  <FieldInput
-                    label="시 내용"
-                    value={currentPage.content}
-                    onChange={(v) => onUpdatePageMeta(currentPage.id, { content: v })}
-                    placeholder="시 내용 입력..."
-                    multiline
-                    grow
-                  />
-                )}
-
-                {currentPage.layoutType === 'blank' && (
-                  <div className="rounded-xl px-3 py-3 text-[11px]" style={{ backgroundColor: '#F5F0E8', color: '#B4A99E' }}>
-                    빈 페이지입니다.
-                  </div>
-                )}
               </>
-            ) : (
+              ) : (
               <p className="text-[11px]" style={{ color: '#aaa' }}>선택된 페이지 없음</p>
             )}
           </div>
@@ -350,8 +328,8 @@ export default function BookEditor({
                       <input type="range" min="10" max="40"
                         value={settings.margins[key]}
                         onChange={(e) => handleMarginChange(key, parseInt(e.target.value))}
-                        className="w-full h-1 rounded-lg appearance-none cursor-ew-resize"
-                        style={{ accentColor: '#B5714A' }}
+                        className="w-full appearance-none cursor-ew-resize"
+                        style={sliderStyle(settings.margins[key], 10, 40)}
                       />
                     </div>
                   );
@@ -398,8 +376,8 @@ export default function BookEditor({
                 <input type="range" min="1.4" max="2.2" step="0.05"
                   value={settings.lineHeight}
                   onChange={(e) => onChangeSettings({ ...settings, lineHeight: parseFloat(e.target.value) })}
-                  className="w-full h-1 rounded-lg appearance-none cursor-ew-resize"
-                  style={{ accentColor: '#B5714A' }}
+                  className="w-full appearance-none cursor-ew-resize"
+                  style={sliderStyle(settings.lineHeight, 1.4, 2.2)}
                 />
               </div>
             </div>

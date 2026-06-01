@@ -18,7 +18,7 @@ export interface Margins {
   outer: number; // mm (Outside edges)
 }
 
-export type PageLayoutType = 'cover' | 'toc' | 'chapter' | 'body' | 'quote' | 'sequence' | 'title-body' | 'blank' | 'title' | 'poem';
+export type PageLayoutType = 'cover' | 'toc' | 'chapter' | 'body' | 'quote' | 'sequence' | 'header-body' | 'blank';
 export type BookTheme = 'classic' | 'modern' | 'academic' | 'zen';
 
 export interface TocEntry {
@@ -32,6 +32,12 @@ export interface Page {
   layoutType: PageLayoutType;
   content: string;
   title?: string;
+  subtitle?: string;
+  author?: string;
+  chapterTitle?: string;
+  chapterSubtitle?: string;
+  tocEntries?: TocEntry[];
+  items?: string[];
 }
 
 export interface Book {
@@ -41,6 +47,23 @@ export interface Book {
   subtitle?: string;
   publisher?: string;
   theme: BookTheme;
+  pages: Page[];
+}
+
+/** 전체 프로젝트 데이터 (메타데이터 + 페이지 서식) */
+export interface BookProject {
+  title: string;
+  author: string;
+  theme: BookTheme;
+  paperSize: string;
+  margins: Margins;
+  fontFamily: 'Noto Serif KR' | 'Inter' | 'Fira Code' | 'Playfair Display';
+  fontSize: number;
+  lineHeight: number;
+  showCropMarks: boolean;
+  showPageNumbers: boolean;
+  showRunningHead: boolean;
+  bleed: number;
   pages: Page[];
 }
 
@@ -95,3 +118,16 @@ export const PRESET_PAPER_SIZES: PaperSize[] = [
 ];
 
 export const DEFAULT_PREVIEW_SCALE = 3.5; // Default pixels per mm for screen rendering
+
+export interface PageData {
+  id: string;
+  layoutType: PageLayoutType;
+  title?: string;
+  chapterTitle?: string;
+  subtitle?: string;
+  chapterSubtitle?: string;
+  author?: string;
+  content?: string;
+  items?: string[]; // Legacy TOC
+  tocEntries?: TocEntry[]; // New TOC
+}

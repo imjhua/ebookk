@@ -32,8 +32,8 @@ export default function PrintSurface({ book, settings, paperTheme = 'white' }: P
   return (
     <div id="print-book-surface">
       {book.pages.map((page, index) => (
+        <React.Fragment key={page.id}>
         <PageRenderer
-          key={page.id}
           page={page}
           pageIndex={index}
           isRightPage={index % 2 === 0}
@@ -42,6 +42,7 @@ export default function PrintSurface({ book, settings, paperTheme = 'white' }: P
           mode="print"
           paperTheme={paperTheme}
         />
+        </React.Fragment>
       ))}
     </div>
   );

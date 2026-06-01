@@ -4,9 +4,8 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Book, Page, PageLayoutType, PrintSettings } from './types';
+import { Book, Page, PageLayoutType, PrintSettings, BookProject } from './types';
 import { useEbookSheet } from './hooks/useEbookSheet';
-import { BOOKS_TEMPLATES } from './bookTemplates';
 import BookEditor from './components/BookEditor';
 import PrintSurface from './components/PrintSurface';
 import DocumentStructure from './components/DocumentStructure';
@@ -17,6 +16,7 @@ import {
   ChevronRight,
   BookOpen,
   BookMarked,
+  LayoutGrid,
   SunDim,
   Download,
   Upload,
@@ -24,12 +24,12 @@ import {
 import BookSpreadReader, { PaperTheme } from './components/BookSpreadReader';
 
 export default function App() {
-  const [book, setBook] = useState<Book>(BOOKS_TEMPLATES[0]);
+  const [book, setBook] = useState<Book | null>(null);
 
   // Page navigation state
   const [selectedPageIndex, setSelectedPageIndex] = useState<number>(0);
   const [currentPageSpread, setCurrentPageSpread] = useState<number>(0);
-  const [viewMode, setViewMode] = useState<'single' | 'double'>('double');
+  const [viewMode, setViewMode] = useState<'single' | 'double' | 'all'>('double');
   const [paperTheme, setPaperTheme] = useState<PaperTheme>('creamy');
 
   // Calibration scale (px per mm)
@@ -41,7 +41,7 @@ export default function App() {
   // Print settings
   const [settings, setSettings] = useState<PrintSettings>({
     paperSizeId: 'a5',
-    margins: { top: 22, bottom: 22, inner: 22, outer: 18 },
+    margins: { top: 21, bottom: 21, inner: 21, outer: 15 },
     fontFamily: 'Noto Serif KR',
     fontSize: 10,
     lineHeight: 1.65,
@@ -56,34 +56,62 @@ export default function App() {
     localStorage.setItem('prepress-calibration-scale', newScale.toString());
   };
 
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzuKJeAilzBvMxixy4DK4vxnhxinpbAlQhRMsmym5WpCDMUhClmvdjzodGTwXPDXXVr/exec';
-  const { status: gasStatus, message: gasMessage, loadFromSheets, saveToSheets } = useEbookSheet(GAS_URL);
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyFNFCnhBGCsDlH__rvWY8Q63eqJhk2gV4a668VWmHyNbdf40B6ukE_fBmDkvXzoicV/exec';
+  const { loading: gasLoading, error: gasError, load, syncAll } = useEbookSheet(GAS_URL);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // 앱 시작 시 Google Sheets에서 자동 로드
   useEffect(() => {
     (async () => {
-      const result = await loadFromSheets(book);
-      if (result) {
-        setBook(result.book);
-        if (result.paperSizeId) {
-          setSettings((prev) => ({
-            ...prev,
-            paperSizeId: result.paperSizeId!,
-            ...(result.bindingMargin != null && {
-              margins: { ...prev.margins, inner: result.bindingMargin! },
-            }),
-          }));
+      try {
+        const result = await load();
+        console.log('📋 load() 반환값:', result);
+        
+        // result 구조 확인
+        if (!result) {
+          throw new Error('load() 함수가 null을 반환했습니다.');
         }
-        setSelectedPageIndex(0);
-        setCurrentPageSpread(0);
+        
+        // pages 배열 확인
+        const pages = result.pages || [];
+        console.log(`📊 pages 갯수: ${pages.length}`);
+        
+        if (pages && pages.length > 0) {
+          console.log(`✅ 로드 성공: ${pages.length}개 페이지`);
+          // Set book with title, author, theme, and pages
+          setBook({
+            id: 'loaded-book',
+            title: result.title || '제목 없음',
+            author: result.author || '',
+            theme: result.theme || 'classic',
+            pages: pages,
+          });
+          
+          // Set settings with print/format configuration
+          setSettings({
+            paperSizeId: result.paperSize || 'a5',
+            margins: result.margins || { top: 21, bottom: 21, inner: 21, outer: 15 },
+            fontFamily: result.fontFamily || 'Noto Serif KR',
+            fontSize: result.fontSize || 10,
+            lineHeight: result.lineHeight || 1.65,
+            showCropMarks: result.showCropMarks ?? true,
+            showPageNumbers: result.showPageNumbers ?? true,
+            showRunningHead: result.showRunningHead ?? true,
+            bleed: result.bleed || 3,
+          });
+        } else {
+          throw new Error(`📭 pages 배열이 비어있습니다 (길이: ${pages?.length || 0})`);
+        }
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        console.error('❌ GAS 로드 실패:', errorMsg);
       }
       setIsInitialLoading(false);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const totalPages = book.pages.length;
+  const totalPages = book?.pages?.length || 0;
 
   // ── Page selection (syncs spread) ──
   const handleSelectPage = (index: number) => {
@@ -92,9 +120,17 @@ export default function App() {
   };
 
   // ── View mode toggle ──
-  const handleViewModeChange = (mode: 'single' | 'double') => {
+  const handleViewModeChange = (mode: 'single' | 'double' | 'all') => {
     setViewMode(mode);
-    setCurrentPageSpread(mode === 'double' ? Math.floor(currentPageSpread / 2) * 2 : currentPageSpread);
+    if (mode !== 'all') {
+      setCurrentPageSpread(mode === 'double' ? Math.floor(currentPageSpread / 2) * 2 : currentPageSpread);
+    }
+  };
+
+  // ── All mode: page click → navigate + switch to double ──
+  const handlePageClickInAllMode = (pageIndex: number) => {
+    handleSelectPage(pageIndex);
+    handleViewModeChange('double');
   };
 
   // ── Navigation ──
@@ -118,6 +154,7 @@ export default function App() {
 
   // ── Book mutations ──
   const handleUpdatePageText = (pageId: string, text: string) => {
+    if (!book) return;
     const updatedPages = book.pages.map((p) =>
       p.id === pageId ? { ...p, content: text } : p
     );
@@ -129,6 +166,7 @@ export default function App() {
   };
 
   const handleUpdatePageMeta = (pageId: string, updates: Partial<Pick<Page, 'title' | 'content'>>) => {
+    if (!book) return;
     const updatedPages = book.pages.map((p) =>
       p.id === pageId ? { ...p, ...updates } : p
     );
@@ -139,8 +177,17 @@ export default function App() {
     handleUpdatePageMeta(pageId, { title });
   };
 
+  const handleUpdatePageType = (pageId: string, layoutType: PageLayoutType) => {
+    if (!book) return;
+    const updatedPages = book.pages.map((p) =>
+      p.id === pageId ? { ...p, layoutType } : p
+    );
+    handleUpdateBook({ ...book, pages: updatedPages });
+  };
+
   // Insert page AFTER current selection
   const handleAddPage = (layoutType: PageLayoutType) => {
+    if (!book) return;
     const ts = Date.now();
     const newPage: Page = { id: `p-${ts}`, layoutType, content: '', title: '' };
     const insertIndex = selectedPageIndex + 1;
@@ -154,6 +201,7 @@ export default function App() {
   };
 
   const handleDeletePage = (pageId: string) => {
+    if (!book) return;
     const pageIndex = book.pages.findIndex((p) => p.id === pageId);
     const updatedPages = book.pages.filter((p) => p.id !== pageId);
     handleUpdateBook({ ...book, pages: updatedPages });
@@ -166,6 +214,7 @@ export default function App() {
   };
 
   const handleReorderPages = (pages: Page[]) => {
+    if (!book) return;
     handleUpdateBook({ ...book, pages });
   };
 
@@ -174,28 +223,74 @@ export default function App() {
   };
 
   const handleSaveToSheets = async () => {
-    await saveToSheets(book, settings);
-  };
-
-  const handleLoadFromSheets = async () => {
-    const result = await loadFromSheets(book);
-    if (result) {
-      setBook(result.book);
-      if (result.paperSizeId) {
-        setSettings((prev) => ({
-          ...prev,
-          paperSizeId: result.paperSizeId!,
-          ...(result.bindingMargin != null && {
-            margins: { ...prev.margins, inner: result.bindingMargin! },
-          }),
-        }));
-      }
-      setSelectedPageIndex(0);
-      setCurrentPageSpread(0);
+    if (!book) {
+      console.error('❌ 저장할 책 데이터가 없습니다');
+      return;
+    }
+    
+    // Construct complete BookProject from current state
+    const project: BookProject = {
+      title: book.title,
+      author: book.author,
+      theme: book.theme,
+      paperSize: settings.paperSizeId, // Convert from paperSizeId to paperSize
+      margins: settings.margins,
+      fontFamily: settings.fontFamily,
+      fontSize: settings.fontSize,
+      lineHeight: settings.lineHeight,
+      showCropMarks: settings.showCropMarks,
+      showPageNumbers: settings.showPageNumbers,
+      showRunningHead: settings.showRunningHead,
+      bleed: settings.bleed,
+      pages: book.pages,
+    };
+    
+    try {
+      await syncAll(project);
+      console.log('✅ 전체 프로젝트 저장 완료');
+    } catch (err) {
+      console.error('❌ 저장 실패:', err);
     }
   };
 
-  const spreadLabel = viewMode === 'double'
+  const handleLoadFromSheets = async () => {
+    try {
+      const result = await load();
+      if (result && result.pages && result.pages.length > 0) {
+        setBook({
+          id: 'loaded-book',
+          title: result.title || '제목 없음',
+          author: result.author || '',
+          theme: result.theme || 'classic',
+          pages: result.pages,
+        });
+        
+        // Also load settings from the project
+        setSettings({
+          paperSizeId: result.paperSize || 'a5',
+          margins: result.margins || { top: 21, bottom: 21, inner: 21, outer: 15 },
+          fontFamily: result.fontFamily || 'Noto Serif KR',
+          fontSize: result.fontSize || 10,
+          lineHeight: result.lineHeight || 1.65,
+          showCropMarks: result.showCropMarks ?? true,
+          showPageNumbers: result.showPageNumbers ?? true,
+          showRunningHead: result.showRunningHead ?? true,
+          bleed: result.bleed || 3,
+        });
+        
+        setSelectedPageIndex(0);
+        setCurrentPageSpread(0);
+      } else {
+        throw new Error('GAS에서 데이터를 불러올 수 없습니다.');
+      }
+    } catch (err) {
+      console.error('Failed to load from sheets:', err);
+    }
+  };
+
+  const spreadLabel = viewMode === 'all'
+    ? `전체 ${totalPages}페이지`
+    : viewMode === 'double'
     ? `${currentPageSpread + 1}–${Math.min(totalPages, currentPageSpread + 2)} / ${totalPages}`
     : `${currentPageSpread + 1} / ${totalPages}`;
 
@@ -226,7 +321,33 @@ export default function App() {
         </div>
       )}
 
+      {/* ── ERROR/NO DATA STATE ── */}
+      {!isInitialLoading && (!book || gasError) && (
+        <div className="flex-1 flex flex-col items-center justify-center gap-5" style={{ backgroundColor: '#2C261F', color: '#FAF6EC' }}>
+          <div className="flex flex-col items-center gap-3 max-w-md text-center">
+            <span className="text-2xl font-serif font-bold">⚠️ 데이터를 불러올 수 없습니다</span>
+            <span className="text-sm font-mono" style={{ color: 'rgba(250,246,236,0.7)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+              {gasError || ''}
+            </span>
+            <button
+              onClick={handleLoadFromSheets}
+              disabled={gasLoading}
+              className="mt-4 px-4 py-2 rounded-lg font-semibold text-sm transition-colors"
+              style={{
+                backgroundColor: gasLoading ? '#5A5A5A' : '#B5714A',
+                color: '#FDFAF6',
+                opacity: gasLoading ? 0.6 : 1,
+                cursor: gasLoading ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {gasLoading ? '로딩 중...' : '다시 시도'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ── MAIN 3-COLUMN LAYOUT ── */}
+      {!isInitialLoading && book && !gasError && (
       <main className="flex-1 flex overflow-hidden no-print">
 
         {/* ── LEFT: Page Navigation ── */}
@@ -238,17 +359,30 @@ export default function App() {
           onDeletePage={handleDeletePage}
           onUpdatePageTitle={handleUpdatePageTitle}
           onReorderPages={handleReorderPages}
+          onUpdatePageType={handleUpdatePageType}
         />
 
         {/* ── CENTER: Book View ── */}
         <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F5F0E8' }}>
+
+          {/* Book Metadata Header */}
+          <div
+            className="shrink-0 px-4 py-2 flex items-center justify-between"
+            style={{ backgroundColor: '#F5F0E8', borderBottom: '1px solid #E8E0D4' }}
+          >
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-semibold" style={{ color: '#B4A99E' }}>📘 책:</span>
+              <span className="text-[11px] font-bold" style={{ color: '#2A2420' }}>{book.title}</span>
+              <span className="text-[10px]" style={{ color: '#7A6F66' }}>• 테마: {book.theme}</span>
+            </div>
+          </div>
 
           {/* Center Toolbar */}
           <div
             className="shrink-0 flex items-center justify-between px-4 py-2 gap-3"
             style={{ backgroundColor: '#FDFAF6', borderBottom: '1px solid #E8E0D4' }}
           >
-            {/* Center: View mode + navigation */}
+            {/* Left: View mode + navigation */}
             <div className="flex items-center gap-2">
               {/* View mode */}
               <div className="flex rounded-lg overflow-hidden shrink-0" style={{ border: '1px solid #E8E0D4' }}>
@@ -268,31 +402,45 @@ export default function App() {
                 >
                   <BookMarked size={12} /> 2쪽
                 </button>
+                <button
+                  onClick={() => handleViewModeChange('all')}
+                  title="전체 보기"
+                  className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors"
+                  style={{ backgroundColor: viewMode === 'all' ? '#2A2420' : '#FDFAF6', color: viewMode === 'all' ? '#fff' : '#7A6F66' }}
+                >
+                  <LayoutGrid size={12} /> 전체
+                </button>
               </div>
 
               {/* Navigation */}
-              <button
-                onClick={handlePrevSpread}
-                disabled={isAtStart}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ backgroundColor: '#FDFAF6', border: '1px solid #E8E0D4', color: '#2A2420' }}
-              >
-                <ChevronLeft size={13} /> 이전
-              </button>
+              {viewMode !== 'all' && (
+                <>
+                  <button
+                    onClick={handlePrevSpread}
+                    disabled={isAtStart}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    style={{ backgroundColor: '#FDFAF6', border: '1px solid #E8E0D4', color: '#2A2420' }}
+                  >
+                    <ChevronLeft size={13} /> 이전
+                  </button>
+                </>
+              )}
               <span
                 className="text-[11px] font-semibold font-mono px-2.5 py-1.5 rounded-lg select-none shrink-0"
                 style={{ backgroundColor: '#F5F0E8', color: '#7A6F66', border: '1px solid #E8E0D4' }}
               >
                 {spreadLabel}
               </span>
-              <button
-                onClick={handleNextSpread}
-                disabled={isAtEnd}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ backgroundColor: '#FDFAF6', border: '1px solid #E8E0D4', color: '#2A2420' }}
-              >
-                다음 <ChevronRight size={13} />
-              </button>
+              {viewMode !== 'all' && (
+                <button
+                  onClick={handleNextSpread}
+                  disabled={isAtEnd}
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                  style={{ backgroundColor: '#FDFAF6', border: '1px solid #E8E0D4', color: '#2A2420' }}
+                >
+                  다음 <ChevronRight size={13} />
+                </button>
+              )}
             </div>
 
             {/* Right: GAS + Paper theme */}
@@ -301,36 +449,36 @@ export default function App() {
               <div className="flex items-center gap-0 rounded-lg overflow-hidden" style={{ border: '1px solid #E8E0D4' }}>
                 <button
                   onClick={handleLoadFromSheets}
-                  disabled={gasStatus === 'loading' || gasStatus === 'saving'}
+                  disabled={gasLoading}
                   className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{ backgroundColor: '#FDFAF6', color: '#7A6F66' }}
                   title="Google Sheets에서 불러오기"
                 >
                   <Download size={12} />
-                  {gasStatus === 'loading' ? '로딩중…' : '불러오기'}
+                  {gasLoading ? '로딩중…' : '불러오기'}
                 </button>
                 <div style={{ width: 1, height: 16, backgroundColor: '#E8E0D4', flexShrink: 0 }} />
                 <button
                   onClick={handleSaveToSheets}
-                  disabled={gasStatus === 'loading' || gasStatus === 'saving'}
+                  disabled={gasLoading}
                   className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{
-                    backgroundColor: gasStatus === 'saving' ? '#7A4F30' : '#B5714A',
+                    backgroundColor: gasLoading ? '#7A4F30' : '#B5714A',
                     color: '#fff',
                   }}
                   title="Google Sheets에 저장"
                 >
                   <Upload size={12} />
-                  {gasStatus === 'saving' ? '저장중…' : '저장'}
+                  {gasLoading ? '저장중…' : '저장'}
                 </button>
               </div>
-              {gasMessage && (
+              {gasError && (
                 <span
                   className="text-[10px] font-medium max-w-[100px] truncate shrink-0"
-                  style={{ color: gasStatus === 'error' ? '#C0392B' : '#5B8A5B' }}
-                  title={gasMessage}
+                  style={{ color: '#C0392B' }}
+                  title={gasError}
                 >
-                  {gasMessage}
+                  {gasError}
                 </span>
               )}
               <div className="shrink-0" style={{ width: 1, height: 16, backgroundColor: '#E8E0D4' }} />
@@ -361,6 +509,7 @@ export default function App() {
               viewMode={viewMode}
               currentPageSpread={currentPageSpread}
               paperTheme={paperTheme}
+              onPageClick={handlePageClickInAllMode}
             />
           </div>
         </div>
@@ -378,9 +527,10 @@ export default function App() {
           onPrint={handlePrint}
         />
       </main>
+      )}
 
       {/* Printable DOM (hidden on screen) */}
-      <PrintSurface book={book} settings={settings} paperTheme={paperTheme} />
+      {book && <PrintSurface book={book} settings={settings} paperTheme={paperTheme} />}
     </div>
   );
 }

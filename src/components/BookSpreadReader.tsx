@@ -13,9 +13,10 @@ interface BookSpreadReaderProps {
   book: Book;
   settings: PrintSettings;
   scale: number;
-  viewMode: 'single' | 'double';
+  viewMode: 'single' | 'double' | 'all';
   currentPageSpread: number;
   paperTheme: PaperTheme;
+  onPageClick?: (pageIndex: number) => void;
 }
 
 export default function BookSpreadReader({
@@ -25,7 +26,22 @@ export default function BookSpreadReader({
   viewMode,
   currentPageSpread,
   paperTheme,
+  onPageClick,
 }: BookSpreadReaderProps) {
+
+  // ── Safety check for uninitialized data ──
+  if (!book || !book.pages || book.pages.length === 0) {
+    return (
+      <div
+        className="w-full h-full flex items-center justify-center"
+        style={{ backgroundColor: '#F5F0E8', color: '#9A8F86' }}
+      >
+        <div className="text-center">
+          <div className="text-sm font-mono">데이터를 로드하는 중...</div>
+        </div>
+      </div>
+    );
+  }
 
   const paperSize = PRESET_PAPER_SIZES.find((p) => p.id === settings.paperSizeId) || PRESET_PAPER_SIZES[0];
   const pages = book.pages;
@@ -58,7 +74,6 @@ export default function BookSpreadReader({
 
     return (
       <PageRenderer
-        key={pages[pageIndex].id}
         page={pages[pageIndex]}
         pageIndex={pageIndex}
         isRightPage={isRightPage}
@@ -73,6 +88,65 @@ export default function BookSpreadReader({
 
   const leftPageIndex  = currentPageSpread;
   const rightPageIndex = currentPageSpread + 1;
+
+  // ─── ALL PAGES GRID VIEW ───
+  if (viewMode === 'all') {
+    const thumbScale = Math.max(0.9, Math.min(1.5, 240 / paperSize.height));
+    const thumbW = Math.round(paperSize.width  * thumbScale);
+    const thumbH = Math.round(paperSize.height * thumbScale);
+
+    return (
+      <div
+        className="w-full min-h-full p-8 transition-colors duration-200"
+        style={{ backgroundColor: deskBg }}
+      >
+        <div
+          className="grid gap-6 justify-center mx-auto"
+          style={{ gridTemplateColumns: `repeat(auto-fill, ${thumbW}px)` }}
+        >
+          {pages.map((page, index) => {
+            const isSelected = index === currentPageSpread || index === currentPageSpread + 1;
+            return (
+              <div
+                key={page.id}
+                className="flex flex-col items-center gap-1.5 cursor-pointer group"
+                onClick={() => onPageClick?.(index)}
+              >
+                <div
+                  className="relative overflow-hidden transition-all duration-150 group-hover:scale-[1.03]"
+                  style={{
+                    width: thumbW,
+                    height: thumbH,
+                    boxShadow: isSelected
+                      ? '0 0 0 2px #B5714A, 0 4px 16px rgba(0,0,0,0.25)'
+                      : '0 2px 10px rgba(0,0,0,0.18)',
+                    borderRadius: 2,
+                  }}
+                >
+                  <PageRenderer
+                    page={page}
+                    pageIndex={index}
+                    isRightPage={index % 2 !== 0}
+                    book={book}
+                    settings={settings}
+                    mode="screen"
+                    scale={thumbScale}
+                    paperTheme={paperTheme}
+                  />
+                </div>
+                <span
+                  className="text-[10px] font-mono select-none"
+                  style={{ color: isSelected ? '#B5714A' : '#9A8F86' }}
+                >
+                  {index + 1}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full flex justify-center items-start overflow-auto py-10 px-6 min-h-full transition-colors duration-200 scrollbar-thin"

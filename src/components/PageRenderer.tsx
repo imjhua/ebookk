@@ -75,6 +75,39 @@ function makeUnits(mode: 'screen' | 'print', scale: number, settings: PrintSetti
 // ─────────────────────────────────────────────
 export default function PageRenderer(props: PageRendererProps) {
   const { page, pageIndex, isRightPage, book, settings } = props;
+
+  // ── Safety check: handle undefined page or book ──
+  if (!page || !book) {
+    return (
+      <div
+        style={{
+          width: '210mm',
+          height: '297mm',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: '#f5f5f5',
+          color: '#999',
+          fontSize: '14px',
+        }}
+      >
+        Loading page...
+      </div>
+    );
+  }
+
+  // ── Ensure page has required properties ──
+  const safePage: Page = {
+    id: page.id || `page-${pageIndex}`,
+    layoutType: page.layoutType || 'body',
+    title: page.title || '',
+    subtitle: page.subtitle || '',
+    author: page.author || '',
+    content: page.content || '',
+    items: page.items,
+    tocEntries: page.tocEntries,
+  };
+
   const mode = props.mode;
   const isScreen = mode === 'screen';
   const scale = isScreen ? (props as ScreenProps).scale : 1;
@@ -86,7 +119,7 @@ export default function PageRenderer(props: PageRendererProps) {
   const { fontPx, u, uF, uFn, uN, contentWidth, runningHeadTop } = makeUnits(mode, scale, settings, paperSize);
 
   const pageNum = pageIndex + 1;
-  const layoutType = page.layoutType;
+  const layoutType = safePage.layoutType;
 
   // ── Paper theme ──
   const themeMap = {
@@ -171,15 +204,15 @@ export default function PageRenderer(props: PageRendererProps) {
         <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', alignItems: 'center', padding: '12% 12%', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: isScreen ? `${uN(1.5)}px` : '2mm' }}>
             <span style={{ letterSpacing: '0.18em', fontFamily: 'sans-serif', textTransform: 'uppercase', opacity: 0.7, fontSize: uF(0.85) }}>
-              {book.subtitle || ''}
+              {safePage.subtitle || ''}
             </span>
             <div style={{ width: accentLineW, height: isScreen ? 1 : '0.3mm', backgroundColor: coverTheme.accent, opacity: 0.4, marginTop: isScreen ? `${uN(2)}px` : '2mm' }} />
             <h1 style={{ fontFamily: 'serif', fontWeight: 900, lineHeight: 1.05, letterSpacing: '-0.01em', margin: `${isScreen ? uN(4) : 4}${unit} 0 0`, padding: `0 ${isScreen ? uN(2) : 2}${unit}`, fontSize: uF(2.4) }}>
-              {book.title}
+              {safePage.title}
             </h1>
             <div style={{ width: dividerW, height: isScreen ? 1 : '0.3mm', backgroundColor: coverTheme.fg, opacity: 0.25, margin: `${isScreen ? uN(3) : 3}${unit} 0` }} />
             <p style={{ fontFamily: 'serif', fontWeight: 500, marginTop: isScreen ? `${uN(2)}px` : '2mm', opacity: 0.85, fontSize: uF(1.2) }}>
-              {book.author}
+              {safePage.author || ''}
             </p>
           </div>
           <span style={{ fontFamily: 'monospace', letterSpacing: '0.2em', opacity: 0.6, fontSize: uF(0.75) }}>
@@ -193,7 +226,12 @@ export default function PageRenderer(props: PageRendererProps) {
   // ── TOC ──
   if (layoutType === 'toc') {
     let entries: TocEntry[] = [];
-    try { entries = JSON.parse(page.content); } catch { entries = []; }
+    // Try to get tocEntries from page object first (from GAS), then fallback to parsing content
+    if (page.tocEntries && Array.isArray(page.tocEntries)) {
+      entries = page.tocEntries;
+    } else {
+      try { entries = safePage.content ? JSON.parse(safePage.content) : []; } catch { entries = []; }
+    }
 
     const pageBg = isScreen ? '' : '#fff';
     const pageColor = isScreen ? '' : '#000';
@@ -213,7 +251,7 @@ export default function PageRenderer(props: PageRendererProps) {
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', marginBottom: uF(1.8) }}>
           <span style={{ fontFamily: 'monospace', letterSpacing: '0.3em', textTransform: 'uppercase', opacity: 0.4, fontSize: uF(0.8) }}>INDEX</span>
           <h2 style={{ fontFamily: 'serif', fontWeight: 700, fontSize: uF(2.2), margin: `${uFn(0.5)}${unit} 0 ${uFn(0.6)}${unit}`, lineHeight: 1.1 }}>
-            {page.title || '목차'}
+            {safePage.title || '목차'}
           </h2>
           <div style={{ width: isScreen ? `${uN(6)}px` : '8mm', height: isScreen ? 1 : '0.2mm', backgroundColor: 'currentColor', opacity: 0.2 }} />
         </div>
@@ -258,28 +296,21 @@ export default function PageRenderer(props: PageRendererProps) {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', paddingBottom: uF(4) }}>
           <span style={{ fontFamily: 'monospace', letterSpacing: '0.32em', textTransform: 'uppercase', opacity: 0.28, fontSize: uF(0.8), display: 'block', marginBottom: uF(1.8) }}>PART</span>
           <h2 style={{ fontFamily: 'serif', fontWeight: 700, fontSize: uF(2.7), letterSpacing: '-0.01em', lineHeight: 1.05, textAlign: 'center', margin: `0 0 ${uF(1.4)}` }}>
-            {page.title || ''}
+            {safePage.title || ''}
           </h2>
-          {page.content ? (
+          {safePage.content ? (
             <p style={{ fontFamily: 'serif', fontStyle: 'italic', textAlign: 'center', opacity: 0.55, lineHeight: 1.5, fontSize: uF(1.05), margin: 0 }}>
-              {page.content}
+              {safePage.content}
             </p>
           ) : null}
         </div>
-        {settings.showPageNumbers && (
-          <div style={{ position: 'absolute', bottom: `${uN(settings.margins.bottom / 2.5)}${unit}`, left: `${paddingLeft}${unit}`, width: contentWidthStr, display: 'flex', justifyContent: 'space-between', fontFamily: 'monospace', fontSize: isScreen ? '11px' : '7.5pt', color: isScreen ? undefined : 'rgba(0,0,0,0.6)' }}>
-            {!isRightPage
-              ? <><span style={{ fontWeight: 700, color: isScreen ? undefined : '#B5714A' }}>{pageNum}</span><span style={{ opacity: 0 }}>.</span></>
-              : <><span style={{ opacity: 0 }}>.</span><span style={{ fontWeight: 700, color: isScreen ? undefined : '#B5714A' }}>{pageNum}</span></>}
-          </div>
-        )}
       </div>
     );
   }
 
   // ── SEQUENCE ──
   if (layoutType === 'sequence') {
-    const seqLines = page.content.split('\n').filter(Boolean);
+    const seqLines = safePage.content.split('\n').filter(Boolean);
     const seqEntries = seqLines.map((line) => {
       const idx = line.lastIndexOf(' ');
       return idx === -1 ? { left: line, right: '' } : { left: line.slice(0, idx), right: line.slice(idx + 1) };
@@ -298,7 +329,7 @@ export default function PageRenderer(props: PageRendererProps) {
       >
         {cropMarks}
         {/* Section header */}
-        {page.title && settings.showRunningHead && (
+        {safePage.title && settings.showRunningHead && (
           <div style={{
             position: 'absolute',
             top: `${uN(settings.margins.top / 2.5)}${unit}`,
@@ -312,7 +343,7 @@ export default function PageRenderer(props: PageRendererProps) {
             textTransform: 'uppercase',
             opacity: 0.45,
           }}>
-            {page.title}
+            {safePage.title}
           </div>
         )}
         {/* Item list */}
@@ -356,7 +387,7 @@ export default function PageRenderer(props: PageRendererProps) {
         }}
       >
         {cropMarks}
-        {settings.showRunningHead && page.title && (
+        {settings.showRunningHead && safePage.title && (
           <div style={{
             position: 'absolute',
             top: `${uN(settings.margins.top / 2.5)}${unit}`,
@@ -370,106 +401,21 @@ export default function PageRenderer(props: PageRendererProps) {
             textTransform: 'uppercase',
             opacity: 0.5,
           }}>
-            <span className="truncate">{page.title}</span>
+            <span className="truncate">{safePage.title}</span>
           </div>
         )}
         <div style={{ height: '100%', width: '100%', overflow: 'hidden', position: 'relative' }}>
           <div style={{ fontSize: uF(1), lineHeight: settings.lineHeight, overflow: 'hidden', height: '100%' }}>
-            {page.content.length > 0 && (
+            {safePage.content.length > 0 && (
               <span style={{ float: 'left', fontSize: uF(3.4), lineHeight: 0.82, marginRight: uF(0.08), marginTop: uF(0.06), fontWeight: 700, fontFamily: 'inherit' }}>
-                {page.content[0]}
+                {safePage.content[0]}
               </span>
             )}
-            <span className="whitespace-pre-wrap break-words">{page.content.length > 0 ? page.content.slice(1) : ''}</span>
+            <span className="whitespace-pre-wrap break-words">{safePage.content.length > 0 ? safePage.content.slice(1) : ''}</span>
           </div>
         </div>
         {settings.showPageNumbers && (
           <div style={{ position: 'absolute', bottom: `${uN(settings.margins.bottom / 2.5)}${unit}`, left: `${paddingLeft}${unit}`, width: contentWidthStr, display: 'flex', justifyContent: 'space-between', fontFamily: 'monospace', fontSize: isScreen ? '11px' : '7.5pt', color: isScreen ? undefined : 'rgba(0,0,0,0.6)' }}>
-            {!isRightPage
-              ? <><span style={{ fontWeight: 700, color: isScreen ? undefined : '#B5714A' }}>{pageNum}</span><span style={{ opacity: 0 }}>.</span></>
-              : <><span style={{ opacity: 0 }}>.</span><span style={{ fontWeight: 700, color: isScreen ? undefined : '#B5714A' }}>{pageNum}</span></>}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // ── BLANK ──
-  if (layoutType === 'blank') {
-    return (
-      <div
-        className={isScreen ? `${themeClasses.bg} ${themeClasses.text} relative shadow-xl overflow-hidden print-sheet` : 'print-sheet'}
-        style={{ width: pageWidth, height: pageHeight, ...(isScreen ? {} : { backgroundColor: printBg, overflow: 'hidden', position: 'relative', boxSizing: 'border-box', ...printColorAdjust }) }}
-      >
-        {cropMarks}
-      </div>
-    );
-  }
-
-  // ── TITLE ──
-  if (layoutType === 'title') {
-    return (
-      <div
-        className={isScreen ? `${themeClasses.bg} ${themeClasses.text} ${fontClass} relative shadow-xl overflow-hidden flex items-center justify-center print-sheet` : 'print-sheet'}
-        style={{
-          width: pageWidth, height: pageHeight,
-          paddingLeft: `${paddingLeft}${unit}`, paddingRight: `${paddingRight}${unit}`,
-          ...(isScreen ? {} : { fontFamily, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: printBg, color: printFg, overflow: 'hidden' }),
-        }}
-      >
-        {cropMarks}
-        <div className="text-center whitespace-pre-wrap break-words w-full" style={{ fontSize: uF(1.8), lineHeight: 1.4, fontWeight: 700 }}>
-          {page.content}
-        </div>
-      </div>
-    );
-  }
-
-  // ── POEM ──
-  if (layoutType === 'poem') {
-    const poemExtraH = isScreen ? pInnerPx * 0.6 : pInnerPx * 0.6;
-    const poemPaddingLeft  = paddingLeft  + poemExtraH;
-    const poemPaddingRight = paddingRight + poemExtraH;
-    const poemLineHeight   = settings.lineHeight * 1.4;
-    const poemContentW = isScreen
-      ? (paperSize.width * scale) - poemPaddingLeft - poemPaddingRight
-      : paperSize.width - poemPaddingLeft - poemPaddingRight;
-
-    return (
-      <div
-        className={isScreen ? `${themeClasses.bg} ${themeClasses.text} ${fontClass} relative shadow-xl overflow-hidden flex flex-col justify-between select-text print-sheet` : 'print-sheet'}
-        style={{
-          width: pageWidth, height: pageHeight,
-          paddingTop: `${pTopPx}${unit}`, paddingBottom: `${pBottomPx}${unit}`,
-          paddingLeft: `${poemPaddingLeft}${unit}`, paddingRight: `${poemPaddingRight}${unit}`,
-          fontSize: uF(1), lineHeight: poemLineHeight,
-          ...(isScreen ? {} : { fontFamily, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', backgroundColor: printBg, color: printFg, overflow: 'hidden' }),
-        }}
-      >
-        {cropMarks}
-        {settings.showRunningHead && (
-          <div style={{
-            position: 'absolute',
-            top: `${uN(settings.margins.top / 2.5)}${unit}`,
-            left: `${poemPaddingLeft}${unit}`,
-            width: `${poemContentW}${unit}`,
-            borderBottom: isScreen ? '1px solid rgba(0,0,0,0.1)' : '0.2mm solid rgba(0,0,0,0.12)',
-            paddingBottom: isScreen ? '6px' : '1mm',
-            display: 'flex', justifyContent: 'space-between',
-            fontFamily: 'monospace', fontSize: isScreen ? '11px' : '7.5pt',
-            letterSpacing: '0.12em', textTransform: 'uppercase', opacity: 0.5,
-          }}>
-            <span className="truncate">{book.title}</span>
-            <span style={{ fontWeight: 300 }}>{book.author}</span>
-          </div>
-        )}
-        <div style={{ height: '100%', width: '100%', overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
-          <div className="w-full whitespace-pre-wrap break-words overflow-hidden" style={{ fontSize: uF(1), lineHeight: poemLineHeight }}>
-            {page.content}
-          </div>
-        </div>
-        {settings.showPageNumbers && (
-          <div style={{ position: 'absolute', bottom: `${uN(settings.margins.bottom / 2.5)}${unit}`, left: `${poemPaddingLeft}${unit}`, width: `${poemContentW}${unit}`, display: 'flex', justifyContent: 'space-between', fontFamily: 'monospace', fontSize: isScreen ? '11px' : '7.5pt', color: isScreen ? undefined : 'rgba(0,0,0,0.6)' }}>
             {!isRightPage
               ? <><span style={{ fontWeight: 700, color: isScreen ? undefined : '#B5714A' }}>{pageNum}</span><span style={{ opacity: 0 }}>.</span></>
               : <><span style={{ opacity: 0 }}>.</span><span style={{ fontWeight: 700, color: isScreen ? undefined : '#B5714A' }}>{pageNum}</span></>}
@@ -494,7 +440,7 @@ export default function PageRenderer(props: PageRendererProps) {
         {cropMarks}
         <div style={{ position: 'relative', zIndex: 10, width: '100%', textAlign: 'center' }}>
           <div className="whitespace-pre-wrap break-words italic" style={{ fontSize: uF(1.65), lineHeight: settings.lineHeight * 1.15 }}>
-            {page.content}
+            {safePage.content}
           </div>
         </div>
         {settings.showPageNumbers && (
@@ -543,12 +489,12 @@ export default function PageRenderer(props: PageRendererProps) {
       )}
       <div style={{ height: '100%', width: '100%', overflow: 'hidden', position: 'relative' }}>
         <div style={{ fontSize: uF(1), lineHeight: settings.lineHeight, overflow: 'hidden', height: '100%' }}>
-          {page.content.length > 0 && (
+          {safePage.content.length > 0 && (
             <span style={{ float: 'left', fontSize: uF(3.4), lineHeight: 0.82, marginRight: uF(0.08), marginTop: uF(0.06), fontWeight: 700, fontFamily: 'inherit' }}>
-              {page.content[0]}
+              {safePage.content[0]}
             </span>
           )}
-          <span className="whitespace-pre-wrap break-words">{page.content.length > 0 ? page.content.slice(1) : ''}</span>
+          <span className="whitespace-pre-wrap break-words">{safePage.content.length > 0 ? safePage.content.slice(1) : ''}</span>
         </div>
       </div>
       {settings.showPageNumbers && (

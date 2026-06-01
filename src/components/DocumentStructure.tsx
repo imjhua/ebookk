@@ -5,30 +5,27 @@
 
 import React, { useState, useRef } from 'react';
 import { Book, Page, PageLayoutType } from '../types';
-import { Plus, Trash2, GripVertical } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 
 const TYPE_BADGE_LABEL: Record<PageLayoutType, string> = {
   cover:       'COVER',
   toc:         'TOC',
   chapter:     'CHAPTER',
   body:        'BODY',
+  blank:       'BLANK',
   quote:       'QUOTE',
   sequence:    'SEQUENCE',
-  'title-body':'HEADER-BODY',
-  blank:       'BLANK',
-  title:       'TITLE',
-  poem:        'POEM',
+  'header-body':'HEADER-BODY',
 };
 
 const ADD_PAGE_TYPES: { type: PageLayoutType; label: string }[] = [
   { type: 'body',       label: '본문 (BODY)' },
+  { type: 'blank',      label: '빈 페이지 (BLANK)' },
   { type: 'chapter',    label: '챕터 제목 (CHAPTER)' },
   { type: 'quote',      label: '인용구 (QUOTE)' },
   { type: 'toc',        label: '목차 (TOC)' },
   { type: 'sequence',   label: '시퀀스 (SEQUENCE)' },
-  { type: 'title-body', label: '제목+본문 (T+B)' },
-  { type: 'blank',      label: '빈 페이지 (BLANK)' },
-  { type: 'poem',       label: '시 (POEM)' },
+  { type: 'header-body', label: '제목+본문 (HEADER-BODY)' },
 ];
 
 interface DocumentStructureProps {
@@ -39,6 +36,7 @@ interface DocumentStructureProps {
   onDeletePage: (pageId: string) => void;
   onUpdatePageTitle?: (pageId: string, title: string) => void;
   onReorderPages: (pages: Page[]) => void;
+  onUpdatePageType?: (pageId: string, layoutType: PageLayoutType) => void;
 }
 
 export default function DocumentStructure({
@@ -49,8 +47,9 @@ export default function DocumentStructure({
   onDeletePage,
   onUpdatePageTitle,
   onReorderPages,
+  onUpdatePageType,
 }: DocumentStructureProps) {
-  const [showAddMenu, setShowAddMenu] = useState(false);
+  const [selectedPageIdForTypeChange, setSelectedPageIdForTypeChange] = useState<string | null>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
   const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
   const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
@@ -101,56 +100,27 @@ export default function DocumentStructure({
   return (
     <div
       className="flex flex-col h-full no-print shrink-0"
-      style={{ width: '200px', minWidth: '200px', backgroundColor: '#2A2420' }}
+      style={{ width: '280px', minWidth: '280px', backgroundColor: '#2C261F' }}
     >
       {/* Header */}
       <div
-        className="px-3 py-3 flex items-center justify-between shrink-0"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}
+        className="px-4 py-3 flex items-center justify-between shrink-0"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
       >
         <span
-          className="text-[9px] font-bold tracking-widest uppercase"
-          style={{ color: 'rgba(255,255,255,0.30)' }}
+          className="text-[9px] font-bold tracking-widest"
+          style={{ color: 'rgba(255,255,255,0.2)' }}
         >
-          Pages
+          DOCUMENT STRUCTURE
         </span>
-        <div className="flex items-center gap-0.5 relative">
-          <button
-            onClick={() => setShowAddMenu((v) => !v)}
-            className="p-1 rounded transition-colors cursor-pointer flex items-center gap-1"
-            style={{ color: 'rgba(255,255,255,0.5)', backgroundColor: showAddMenu ? 'rgba(255,255,255,0.1)' : 'transparent' }}
-            title="현재 페이지 뒤에 페이지 추가"
-          >
-            <Plus size={13} />
-          </button>
-
-          {/* Add page dropdown */}
-          {showAddMenu && (
-            <div
-              className="absolute right-0 top-7 z-50 rounded-xl overflow-hidden shadow-2xl"
-              style={{ backgroundColor: '#3D3530', border: '1px solid rgba(255,255,255,0.08)', minWidth: '170px' }}
-            >
-              <div className="px-3 py-2 text-[9px] font-bold tracking-widest uppercase" style={{ color: 'rgba(255,255,255,0.3)', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                현재 선택 뒤에 추가
-              </div>
-              {ADD_PAGE_TYPES.map(({ type, label }) => (
-                <button
-                  key={type}
-                  onClick={() => {
-                    onAddPage(type);
-                    setShowAddMenu(false);
-                  }}
-                  className="w-full text-left px-3 py-2 text-[11px] font-medium transition-colors cursor-pointer"
-                  style={{ color: 'rgba(255,255,255,0.7)' }}
-                  onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)')}
-                  onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = 'transparent')}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
+        <button
+          onClick={() => onAddPage('blank')}
+          className="p-1.5 rounded-lg transition-colors cursor-pointer"
+          style={{ color: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.05)' }}
+          title="빈 페이지 추가 (BLANK)"
+        >
+          <Plus size={14} />
+        </button>
       </div>
 
       {/* Page List */}
@@ -174,73 +144,108 @@ export default function DocumentStructure({
               onClick={() => onSelectPage(idx)}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
-              className="flex items-center gap-2 px-2 py-2.5 cursor-pointer transition-colors select-none group relative"
+              className="flex items-center px-4 py-3 cursor-pointer transition-colors select-none group relative"
               style={{
                 backgroundColor: isDragging
-                  ? 'rgba(255,255,255,0.03)'
+                  ? 'rgba(0,0,0,0.1)'
                   : isSelected
-                  ? '#F5F0E8'
+                  ? '#1F1B17'
                   : isHovered
-                  ? 'rgba(255,255,255,0.05)'
+                  ? 'rgba(255,255,255,0.03)'
                   : 'transparent',
-                opacity: isDragging ? 0.4 : 1,
-                borderTop: isDragOver ? '2px solid #B5714A' : '2px solid transparent',
+                opacity: isDragging ? 0.5 : 1,
+                borderLeft: isSelected ? '3px solid #B5714A' : '3px solid transparent',
+                paddingLeft: 'calc(1rem - 3px)',
+                minHeight: '44px',
+                gap: '8px',
               }}
             >
-              {/* Drag handle */}
+              {/* Number */}
               <span
-                className="shrink-0 cursor-grab active:cursor-grabbing"
-                style={{ color: isSelected ? 'rgba(42,36,32,0.3)' : 'rgba(255,255,255,0.15)' }}
-              >
-                <GripVertical size={12} />
-              </span>
-
-              <span
-                className="font-mono text-[11px] font-bold shrink-0 w-4 text-center"
-                style={{ color: isSelected ? '#2A2420' : 'rgba(255,255,255,0.25)' }}
+                className="font-mono text-[12px] font-bold shrink-0"
+                style={{ color: isSelected ? '#B5714A' : 'rgba(255,255,255,0.25)' }}
               >
                 {String(idx + 1).padStart(2, '0')}
               </span>
 
+              {/* Title */}
               {isSelected && page.layoutType !== 'body' ? (
                 <input
                   type="text"
                   value={page.title || ''}
                   onChange={(e) => onUpdatePageTitle?.(page.id, e.target.value)}
                   placeholder="제목 입력..."
-                  className="flex-1 bg-transparent outline-none min-w-0 text-[11px] font-medium"
-                  style={{ color: '#2A2420' }}
+                  className="flex-1 bg-transparent outline-none text-[12px] font-medium min-w-0"
+                  style={{ color: '#FFE0C0' }}
                   onClick={(e) => e.stopPropagation()}
                 />
               ) : (
                 <span
-                  className="flex-1 text-[11px] font-medium truncate"
-                  style={{ color: isSelected ? '#2A2420' : 'rgba(255,255,255,0.55)' }}
+                  className="flex-1 text-[12px] font-medium truncate"
+                  style={{ color: isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.45)' }}
                 >
                   {displayTitle}
                 </span>
               )}
 
-              {isHovered && !isSelected && book.pages.length > 1 ? (
+              {/* Delete button (Show only on hover) */}
+              {isHovered && !isSelected && book.pages.length > 1 && (
                 <button
                   onClick={(e) => { e.stopPropagation(); onDeletePage(page.id); }}
-                  className="shrink-0 cursor-pointer transition-colors"
-                  style={{ color: 'rgba(255,80,80,0.7)' }}
+                  className="shrink-0 cursor-pointer transition-colors p-1 flex items-center justify-center rounded"
+                  style={{ color: 'rgba(255,80,80,0.7)', height: '24px', width: '24px' }}
                   title="페이지 삭제"
                 >
-                  <Trash2 size={10} />
+                  <Trash2 size={14} />
                 </button>
-              ) : (
-                <span
-                  className="text-[9px] font-bold px-1.5 py-0.5 rounded-sm shrink-0"
-                  style={{
-                    backgroundColor: isSelected ? 'rgba(42,36,32,0.08)' : 'rgba(255,255,255,0.07)',
-                    color: isSelected ? '#7A6F66' : 'rgba(255,255,255,0.32)',
+              )}
+
+              {/* Badge (Always visible) */}
+              <div className="relative inline-block shrink-0">
+                <button
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setSelectedPageIdForTypeChange(selectedPageIdForTypeChange === page.id ? null : page.id);
                   }}
+                  className="text-[9px] font-bold px-2 py-1 rounded transition-colors cursor-pointer h-6 flex items-center"
+                  style={{
+                    backgroundColor: isSelected ? 'rgba(181,113,74,0.3)' : 'rgba(255,255,255,0.15)',
+                    color: isSelected ? '#FFE0C0' : '#FFFFFF',
+                  }}
+                  title="타입 변경"
                 >
                   {badge}
-                </span>
-              )}
+                </button>
+
+                {/* Type change dropdown */}
+                {selectedPageIdForTypeChange === page.id && (
+                  <div
+                    className="absolute right-0 top-full mt-1 z-50 rounded-lg overflow-hidden shadow-2xl"
+                    style={{ backgroundColor: '#3D3530', border: '1px solid rgba(255,255,255,0.08)' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {ADD_PAGE_TYPES.map(({ type, label }) => (
+                      <button
+                        key={type}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUpdatePageType?.(page.id, type);
+                          setSelectedPageIdForTypeChange(null);
+                        }}
+                        className="w-full text-left px-3 py-2 text-[10px] font-medium transition-colors cursor-pointer"
+                        style={{ 
+                          color: 'rgba(255,255,255,0.7)',
+                          backgroundColor: page.layoutType === type ? 'rgba(181,113,74,0.3)' : 'transparent',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = page.layoutType === type ? 'rgba(181,113,74,0.3)' : 'transparent')}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
