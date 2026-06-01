@@ -161,3 +161,80 @@ export const PRINT_COLOR_ADJUST_STYLE = {
   WebkitPrintColorAdjust: 'exact' as const,
   printColorAdjust: 'exact' as const,
 };
+
+/**
+ * Layout-specific display configuration
+ * Controls whether certain UI elements (page number, running head) should be displayed by default
+ * These can be overridden by global settings, but provide sensible defaults per layout type
+ */
+export interface LayoutConfig {
+  showPageNumbers: boolean;   // Whether page numbers should be visible by default
+  showRunningHead: boolean;   // Whether running head should be visible by default
+  containerLayout: 'center' | 'space-between';  // How to position content within page
+}
+
+export type PageLayoutType = 'cover' | 'toc' | 'chapter' | 'body' | 'header-body' | 'quote' | 'sequence' | 'blank';
+
+/**
+ * Default configuration for each layout type
+ * These are combined with global settings.showPageNumbers/showRunningHead
+ * 
+ * - cover: No page numbers (표지 디자인), no running head
+ * - toc: Both enabled (page numbers for reference navigation)
+ * - chapter: No page numbers (챕터 타이틀 전용), no running head
+ * - body: Both enabled (standard text layout)
+ * - header-body: Both enabled (same as body)
+ * - quote: Both enabled
+ * - sequence: Both enabled
+ * - blank: No page numbers (intentionally blank), no running head
+ */
+export const LAYOUT_CONFIG_MAP: Record<PageLayoutType, LayoutConfig> = {
+  cover: {
+    showPageNumbers: false,
+    showRunningHead: false,
+    containerLayout: 'center',
+  },
+  toc: {
+    showPageNumbers: true,
+    showRunningHead: false,
+    containerLayout: 'space-between',
+  },
+  chapter: {
+    showPageNumbers: false,
+    showRunningHead: false,
+    containerLayout: 'center',
+  },
+  body: {
+    showPageNumbers: true,
+    showRunningHead: true,
+    containerLayout: 'space-between',
+  },
+  'header-body': {
+    showPageNumbers: true,
+    showRunningHead: true,
+    containerLayout: 'space-between',
+  },
+  quote: {
+    showPageNumbers: true,
+    showRunningHead: false,
+    containerLayout: 'center',
+  },
+  sequence: {
+    showPageNumbers: true,
+    showRunningHead: true,
+    containerLayout: 'space-between',
+  },
+  blank: {
+    showPageNumbers: false,
+    showRunningHead: false,
+    containerLayout: 'center',
+  },
+};
+
+/**
+ * Get layout configuration by layout type
+ * Falls back to 'body' config if type is not recognized
+ */
+export function getLayoutConfig(layoutType: string): LayoutConfig {
+  return LAYOUT_CONFIG_MAP[(layoutType as PageLayoutType) || 'body'] || LAYOUT_CONFIG_MAP.body;
+}

@@ -35,6 +35,7 @@ import {
   FONT_FAMILY_MAP,
   PRINT_COLOR_ADJUST_STYLE,
   LayoutContentProps,
+  getLayoutConfig,
 } from './layout-helpers';
 import { getLayoutContentComponent } from './layouts';
 
@@ -113,6 +114,16 @@ export default function PageRenderer(props: PageRendererProps) {
   const pageNum = pageIndex + 1;
   const layoutType = safePage.layoutType;
 
+  // ── Get layout configuration ──
+  const layoutConfig = getLayoutConfig(layoutType);
+
+  // ── Determine visibility: layout config AND settings ──
+  // Both must allow for the element to be shown
+  // If layout forbids it (false), settings cannot override it to true
+  // Settings can only restrict further (set to false)
+  const showPageNumbers = layoutConfig.showPageNumbers && settings.showPageNumbers;
+  const showRunningHead = layoutConfig.showRunningHead && settings.showRunningHead;
+
   // ── Paper theme ──
   const themeEntry = PAPER_THEME_MAP[paperTheme] || PAPER_THEME_MAP.white;
   const themeClasses = isScreen
@@ -188,15 +199,14 @@ export default function PageRenderer(props: PageRendererProps) {
   }
 
   // ── Determine page layout container structure ──
-  // Some layouts are centered, some are between|space-between
-  const containerLayoutStyle: React.CSSProperties =
-    layoutType === 'cover'
-      ? { display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }
-      : layoutType === 'quote'
-      ? { display: 'flex', alignItems: 'center', justifyContent: 'center' }
-      : layoutType === 'blank'
-      ? { display: 'flex', alignItems: 'center', justifyContent: 'center' }
-      : { display: 'flex', flexDirection: 'column', justifyContent: 'space-between' };
+  // Use layout config to determine positioning
+  const containerLayoutStyle: React.CSSProperties = {
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: layoutConfig.containerLayout === 'center' ? 'center' : 'stretch',
+    justifyContent: layoutConfig.containerLayout === 'center' ? 'center' : 'space-between',
+    ...(layoutConfig.containerLayout === 'center' && { textAlign: 'center' }),
+  };
 
   const pageId = isScreen ? `preview-page-${pageNum}` : undefined;
   const pageClass = isScreen
@@ -218,9 +228,9 @@ export default function PageRenderer(props: PageRendererProps) {
       {/* Content container - varies by layout type */}
       <div style={containerLayoutStyle}>
         {/* Running head - used by specific layouts */}
-        {(layoutType === 'body' || layoutType === 'sequence' || layoutType === 'header-body') && (
+        {showRunningHead && (layoutType === 'body' || layoutType === 'sequence' || layoutType === 'header-body') && (
           <RunningHeadRenderer
-            show={settings.showRunningHead}
+            show={true}
             isScreen={isScreen}
             unit={unit}
             position={{ top: pTopPx, left: paddingLeft }}
@@ -239,17 +249,19 @@ export default function PageRenderer(props: PageRendererProps) {
       </div>
 
       {/* Page number (absolute positioned) */}
-      <PageNumberRenderer
-        pageNum={pageNum}
-        isRightPage={isRightPage}
-        isScreen={isScreen}
-        unit={unit}
-        paddingLeft={paddingLeft}
-        contentWidth={contentWidthStr}
-        fontSize={isScreen ? '11px' : '7.5pt'}
-        settings={settings}
-        marginBottom={uN(settings.margins.bottom / 2.5)}
-      />
+      {showPageNumbers && (
+        <PageNumberRenderer
+          pageNum={pageNum}
+          isRightPage={isRightPage}
+          isScreen={isScreen}
+          unit={unit}
+          paddingLeft={paddingLeft}
+          contentWidth={contentWidthStr}
+          fontSize={isScreen ? '11px' : '7.5pt'}
+          settings={settings}
+          marginBottom={uN(settings.margins.bottom / 2.5)}
+        />
+      )}
     </div>
   );
 }

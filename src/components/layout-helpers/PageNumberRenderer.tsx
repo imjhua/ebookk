@@ -23,6 +23,9 @@ interface PageNumberRendererProps {
  * Renders page number in the footer
  * - Left pages: number on the left
  * - Right pages: number on the right
+ * 
+ * Note: This component is only rendered when showPageNumbers is true in PageRenderer.
+ * Layout-specific defaults are handled there, so no need to check settings again.
  */
 export default function PageNumberRenderer({
   pageNum,
@@ -35,9 +38,8 @@ export default function PageNumberRenderer({
   settings,
   marginBottom,
 }: PageNumberRendererProps) {
-  if (!settings.showPageNumbers) {
-    return null;
-  }
+  // Note: showPageNumbers filtering is done in PageRenderer based on layout config
+  // This component assumes it's only called when page numbers should be shown
 
   const paddingLeftStr = typeof paddingLeft === 'number' ? `${paddingLeft}${unit}` : paddingLeft;
   const marginBottomStr = typeof marginBottom === 'number' ? `${marginBottom}${unit}` : marginBottom;
