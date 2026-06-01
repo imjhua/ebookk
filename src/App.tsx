@@ -56,7 +56,7 @@ export default function App() {
     localStorage.setItem('prepress-calibration-scale', newScale.toString());
   };
 
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbyFNFCnhBGCsDlH__rvWY8Q63eqJhk2gV4a668VWmHyNbdf40B6ukE_fBmDkvXzoicV/exec';
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzS0j_eBEeo9PEqs-041xuS1tbvhjOSiru9ahQmnxSdmRx94qkCZO48X_3JZYHbaVoU/exec';
   const { loading: gasLoading, error: gasError, load, syncAll } = useEbookSheet(GAS_URL);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 

@@ -156,13 +156,17 @@ export default function BookSpreadReader({
         <div className="relative flex justify-center drop-shadow-2xl">
           <div className="absolute inset-0 bg-[#3a4454]/10 rounded-2xl -m-2 opacity-50 blur-xl pointer-events-none" />
           {renderPage(leftPageIndex, false)}
-          {/* Spine */}
-          <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-8 pointer-events-none z-30 flex">
-            <div className="w-1/2 h-full bg-gradient-to-r from-black/8 via-black/18 to-transparent" />
-            <div className="w-1/2 h-full bg-gradient-to-l from-black/8 via-black/18 to-transparent" />
-            <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-0.5 bg-black/40 shadow-[0_0_2px_rgba(0,0,0,0.5)]" />
-          </div>
-          {renderPage(rightPageIndex, true)}
+          {rightPageIndex < totalPages && (
+            <>
+              {/* Spine */}
+              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-8 pointer-events-none z-30 flex">
+                <div className="w-1/2 h-full bg-gradient-to-r from-black/8 via-black/18 to-transparent" />
+                <div className="w-1/2 h-full bg-gradient-to-l from-black/8 via-black/18 to-transparent" />
+                <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-0.5 bg-black/40 shadow-[0_0_2px_rgba(0,0,0,0.5)]" />
+              </div>
+              {renderPage(rightPageIndex, true)}
+            </>
+          )}
         </div>
       ) : (
         <div className="relative shadow-2xl rounded-sm">

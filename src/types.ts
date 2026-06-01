@@ -34,8 +34,6 @@ export interface Page {
   title?: string;
   subtitle?: string;
   author?: string;
-  chapterTitle?: string;
-  chapterSubtitle?: string;
   tocEntries?: TocEntry[];
   items?: string[];
 }
@@ -123,9 +121,7 @@ export interface PageData {
   id: string;
   layoutType: PageLayoutType;
   title?: string;
-  chapterTitle?: string;
   subtitle?: string;
-  chapterSubtitle?: string;
   author?: string;
   content?: string;
   items?: string[]; // Legacy TOC

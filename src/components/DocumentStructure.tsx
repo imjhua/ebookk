@@ -207,7 +207,7 @@ export default function DocumentStructure({
                     e.stopPropagation(); 
                     setSelectedPageIdForTypeChange(selectedPageIdForTypeChange === page.id ? null : page.id);
                   }}
-                  className="text-[9px] font-bold px-2 py-1 rounded transition-colors cursor-pointer h-6 flex items-center"
+                  className="text-[9px] px-2 py-1 rounded transition-colors cursor-pointer h-6 flex items-center"
                   style={{
                     backgroundColor: isSelected ? 'rgba(181,113,74,0.3)' : 'rgba(255,255,255,0.15)',
                     color: isSelected ? '#FFE0C0' : '#FFFFFF',

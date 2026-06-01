@@ -65,7 +65,8 @@ export default function BookEditor({
     body:        'body',
     quote:       'quote',
     sequence:    'sequence',
-    'title-body':'title-body',
+    'header-body':'header-body',
+    blank:       'blank',
   };
 
   return (
@@ -162,7 +163,11 @@ export default function BookEditor({
 
                 {currentPage.layoutType === 'toc' && (() => {
                   let entries: TocEntry[] = [];
-                  try { entries = JSON.parse(currentPage.content); } catch { entries = []; }
+                  if (currentPage.tocEntries && Array.isArray(currentPage.tocEntries)) {
+                    entries = currentPage.tocEntries;
+                  } else {
+                    try { entries = currentPage.content ? JSON.parse(currentPage.content) : []; } catch { entries = []; }
+                  }
                   const updateEntries = (next: TocEntry[]) =>
                     onUpdatePageMeta(currentPage.id, { content: JSON.stringify(next) });
                   return (
@@ -249,7 +254,7 @@ export default function BookEditor({
                   );
                 })()}
 
-                {['sequence', 'title-body'].includes(currentPage.layoutType) && (
+                {['sequence', 'header-body'].includes(currentPage.layoutType) && (
                   <div className="flex flex-col gap-3 flex-1">
                     <FieldInput
                       label="페이지 제목"

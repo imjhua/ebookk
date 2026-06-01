@@ -15,7 +15,7 @@ function autoSetupEbookSheets() {
     'PageOrder':   ['id', 'pageType', 'orderIndex'],
     'Cover':       ['id', 'title', 'subtitle', 'author'],
     'TOC':         ['id', 'title', 'tocEntries_json'],
-    'Chapter':     ['id', 'chapterTitle', 'chapterSubtitle', 'content'],
+    'Chapter':     ['id', 'title', 'subtitle', 'content'],
     'Sequence':    ['id', 'title', 'content', 'items_json'],
     'Header-Body': ['id', 'title', 'content'],
     'Body':        ['id', 'content'],
@@ -63,7 +63,7 @@ function autoSetupEbookSheets() {
       ['header-body-row-2', 'header-body', 4],
       ['body-row-2', 'body', 5],
       ['blank-row-2', 'blank', 6],
-      ['quote-row-2', 'quote', 7
+      ['quote-row-2', 'quote', 7],
       ['quote-row-2', 'quote', 6]
     ]
   };

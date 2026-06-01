@@ -290,8 +290,8 @@ function _rowToObject(pageType, row, rowIndex) {
       }
       break;
     case 'chapter':
-      obj.chapterTitle = row[1] || '';
-      obj.chapterSubtitle = row[2] || '';
+      obj.title = row[1] || '';
+      obj.subtitle = row[2] || '';
       obj.content = row[3] || '';
       break;
     case 'sequence':
@@ -340,8 +340,8 @@ function _objectToRow(pageType, obj) {
     case 'chapter':
       return [
         obj.id || '',
-        obj.chapterTitle || '',
-        obj.chapterSubtitle || '',
+        obj.title || '',
+        obj.subtitle || '',
         obj.content || ''
       ];
     case 'sequence':

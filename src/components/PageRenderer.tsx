@@ -132,8 +132,8 @@ export default function PageRenderer(props: PageRendererProps) {
   const themeClasses = isScreen
     ? { bg: themeEntry.bg, text: themeEntry.text }
     : { bg: '', text: '' };
-  const printBg = isScreen ? '' : themeEntry.bgColor;
-  const printFg = isScreen ? '' : themeEntry.fgColor;
+  const bgColorStyle = themeEntry.bgColor;
+  const fgColorStyle = themeEntry.fgColor;
   const printColorAdjust = isScreen ? {} : { WebkitPrintColorAdjust: 'exact' as const, printColorAdjust: 'exact' as const };
 
   const fontClass = {
@@ -233,17 +233,24 @@ export default function PageRenderer(props: PageRendererProps) {
       try { entries = safePage.content ? JSON.parse(safePage.content) : []; } catch { entries = []; }
     }
 
-    const pageBg = isScreen ? '' : '#fff';
-    const pageColor = isScreen ? '' : '#000';
+    // ── Card styling based on paper theme ──
+    const cardColors = {
+      creamy: { cardBg: '#F5F0E8', cardBorder: '#E8E0D4' },
+      white:  { cardBg: '#F8F8F8', cardBorder: '#E0E0E0' },
+      sepia:  { cardBg: '#E0D0A8', cardBorder: '#D0C0A0' },
+      dark:   { cardBg: '#3A3A3A', cardBorder: '#555555' },
+    }[paperTheme] || { cardBg: '#F5F0E8', cardBorder: '#E8E0D4' };
 
     return (
       <div
-        className={isScreen ? `${themeClasses.bg} ${themeClasses.text} ${fontClass} relative shadow-xl overflow-hidden flex flex-col justify-between print-sheet` : 'print-sheet'}
+        className={isScreen ? `${fontClass} relative shadow-xl overflow-hidden flex flex-col justify-between print-sheet` : 'print-sheet'}
         style={{
           width: pageWidth, height: pageHeight,
           paddingTop: `${pTopPx}${unit}`, paddingBottom: `${pBottomPx}${unit}`,
           paddingLeft: `${paddingLeft}${unit}`, paddingRight: `${paddingRight}${unit}`,
-          ...(isScreen ? {} : { fontFamily, fontSize: `${settings.fontSize}pt`, lineHeight: settings.lineHeight, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', backgroundColor: pageBg, color: pageColor, overflow: 'hidden' }),
+          backgroundColor: bgColorStyle,
+          color: fgColorStyle,
+          ...(isScreen ? { boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' } : { fontFamily, fontSize: `${settings.fontSize}pt`, lineHeight: settings.lineHeight, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' }),
         }}
       >
         {cropMarks}
@@ -256,15 +263,32 @@ export default function PageRenderer(props: PageRendererProps) {
           <div style={{ width: isScreen ? `${uN(6)}px` : '8mm', height: isScreen ? 1 : '0.2mm', backgroundColor: 'currentColor', opacity: 0.2 }} />
         </div>
         {/* Entries */}
-        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: uF(1.4) }}>
+        <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column', gap: uF(1.2) }}>
           {entries.map((entry, i) => (
-            <div key={i}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: uF(0.15) }}>
-                <span style={{ fontFamily: 'monospace', letterSpacing: '0.2em', textTransform: 'uppercase', opacity: 0.45, fontSize: uF(0.78) }}>{entry.chapter}</span>
-                <span style={{ fontFamily: 'monospace', opacity: 0.45, fontSize: uF(0.78) }}>P.{entry.pageNum}</span>
+            <div
+              key={i}
+              style={{
+                backgroundColor: isScreen ? cardColors.cardBg : cardColors.cardBg,
+                border: isScreen ? `1px solid ${cardColors.cardBorder}` : `0.3mm solid ${cardColors.cardBorder}`,
+                borderRadius: isScreen ? '6px' : '2mm',
+                padding: `${uF(0.6)} ${uF(0.8)}`,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: uF(0.4),
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontFamily: 'monospace', letterSpacing: '0.2em', textTransform: 'uppercase', opacity: 0.55, fontSize: uF(0.75) }}>
+                  {entry.chapter}
+                </span>
+                <span style={{ fontFamily: 'monospace', opacity: 0.55, fontSize: uF(0.75) }}>
+                  P.{entry.pageNum}
+                </span>
               </div>
-              <div style={{ height: isScreen ? 1 : '0.2mm', backgroundColor: 'currentColor', opacity: 0.08, marginBottom: uF(0.3) }} />
-              <p style={{ fontFamily: 'serif', fontSize: uF(1.05), lineHeight: 1.4, margin: 0 }}>{entry.title}</p>
+              <div style={{ height: isScreen ? 1 : '0.15mm', backgroundColor: 'currentColor', opacity: 0.12 }} />
+              <p style={{ fontFamily: 'serif', fontSize: uF(1.0), lineHeight: 1.35, margin: 0, color: 'currentColor' }}>
+                {entry.title}
+              </p>
             </div>
           ))}
         </div>
@@ -284,12 +308,14 @@ export default function PageRenderer(props: PageRendererProps) {
   if (layoutType === 'chapter') {
     return (
       <div
-        className={isScreen ? `${themeClasses.bg} ${themeClasses.text} ${fontClass} relative shadow-xl overflow-hidden flex flex-col print-sheet` : 'print-sheet'}
+        className={isScreen ? `${fontClass} relative shadow-xl overflow-hidden flex flex-col print-sheet` : 'print-sheet'}
         style={{
           width: pageWidth, height: pageHeight,
           paddingTop: `${pTopPx}${unit}`, paddingBottom: `${pBottomPx}${unit}`,
           paddingLeft: `${paddingLeft}${unit}`, paddingRight: `${paddingRight}${unit}`,
-          ...(isScreen ? {} : { fontFamily, fontSize: `${settings.fontSize}pt`, lineHeight: settings.lineHeight, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', flexDirection: 'column', backgroundColor: printBg, color: printFg, overflow: 'hidden' }),
+          backgroundColor: bgColorStyle,
+          color: fgColorStyle,
+          ...(isScreen ? { boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', overflow: 'hidden' } : { fontFamily, fontSize: `${settings.fontSize}pt`, lineHeight: settings.lineHeight, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', flexDirection: 'column', overflow: 'hidden' }),
         }}
       >
         {cropMarks}
@@ -318,13 +344,15 @@ export default function PageRenderer(props: PageRendererProps) {
 
     return (
       <div
-        className={isScreen ? `${themeClasses.bg} ${themeClasses.text} ${fontClass} relative shadow-xl overflow-hidden flex flex-col justify-between select-text print-sheet` : 'print-sheet'}
+        className={isScreen ? `${fontClass} relative shadow-xl overflow-hidden flex flex-col justify-between select-text print-sheet` : 'print-sheet'}
         style={{
           width: pageWidth, height: pageHeight,
           paddingTop: `${pTopPx}${unit}`, paddingBottom: `${pBottomPx}${unit}`,
           paddingLeft: `${paddingLeft}${unit}`, paddingRight: `${paddingRight}${unit}`,
           fontSize: uF(1), lineHeight: settings.lineHeight,
-          ...(isScreen ? {} : { fontFamily, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', backgroundColor: printBg, color: printFg, overflow: 'hidden' }),
+          backgroundColor: bgColorStyle,
+          color: fgColorStyle,
+          ...(isScreen ? { boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' } : { fontFamily, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' }),
         }}
       >
         {cropMarks}
@@ -373,17 +401,19 @@ export default function PageRenderer(props: PageRendererProps) {
   }
 
   // ── TITLE-BODY ──
-  if (layoutType === 'title-body') {
+  if (layoutType === 'header-body') {
     return (
       <div
         id={isScreen ? `preview-page-${pageNum}` : undefined}
-        className={isScreen ? `${themeClasses.bg} ${themeClasses.text} ${fontClass} relative shadow-xl overflow-hidden flex flex-col justify-between select-text print-sheet` : 'print-sheet'}
+        className={isScreen ? `${fontClass} relative shadow-xl overflow-hidden flex flex-col justify-between select-text print-sheet` : 'print-sheet'}
         style={{
           width: pageWidth, height: pageHeight,
           paddingTop: `${pTopPx}${unit}`, paddingBottom: `${pBottomPx}${unit}`,
           paddingLeft: `${paddingLeft}${unit}`, paddingRight: `${paddingRight}${unit}`,
           fontSize: uF(1), lineHeight: settings.lineHeight,
-          ...(isScreen ? {} : { fontFamily, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', backgroundColor: printBg, color: printFg, overflow: 'hidden' }),
+          backgroundColor: bgColorStyle,
+          color: fgColorStyle,
+          ...(isScreen ? { boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' } : { fontFamily, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' }),
         }}
       >
         {cropMarks}
@@ -429,12 +459,14 @@ export default function PageRenderer(props: PageRendererProps) {
   if (layoutType === 'quote') {
     return (
       <div
-        className={isScreen ? `${themeClasses.bg} ${themeClasses.text} ${fontClass} relative shadow-xl overflow-hidden flex items-center justify-center print-sheet` : 'print-sheet'}
+        className={isScreen ? `${fontClass} relative shadow-xl overflow-hidden flex items-center justify-center print-sheet` : 'print-sheet'}
         style={{
           width: pageWidth, height: pageHeight,
           paddingTop: `${pTopPx}${unit}`, paddingBottom: `${pBottomPx}${unit}`,
           paddingLeft: `${paddingLeft}${unit}`, paddingRight: `${paddingRight}${unit}`,
-          ...(isScreen ? {} : { fontFamily, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: printBg, color: printFg, overflow: 'hidden' }),
+          backgroundColor: bgColorStyle,
+          color: fgColorStyle,
+          ...(isScreen ? { boxSizing: 'border-box', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' } : { fontFamily, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }),
         }}
       >
         {cropMarks}
@@ -454,17 +486,52 @@ export default function PageRenderer(props: PageRendererProps) {
     );
   }
 
+  // ── BLANK ──
+  if (layoutType === 'blank') {
+    return (
+      <div
+        className={isScreen ? `${themeClasses.bg} ${themeClasses.text} ${fontClass} relative shadow-xl overflow-hidden flex items-center justify-center print-sheet` : 'print-sheet'}
+        style={{
+          width: pageWidth, height: pageHeight,
+          paddingTop: `${pTopPx}${unit}`, paddingBottom: `${pBottomPx}${unit}`,
+          paddingLeft: `${paddingLeft}${unit}`, paddingRight: `${paddingRight}${unit}`,
+          backgroundColor: bgColorStyle,
+          color: fgColorStyle,
+          ...(isScreen ? { boxSizing: 'border-box', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' } : { fontFamily, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }),
+        }}
+      >
+        {cropMarks}
+        {isScreen && (
+          <div style={{ position: 'relative', zIndex: 10, textAlign: 'center' }}>
+            <span style={{ fontSize: uF(1.2), opacity: 0.5, fontFamily: 'monospace' }}>
+              [빈페이지]
+            </span>
+          </div>
+        )}
+        {settings.showPageNumbers && (
+          <div style={{ position: 'absolute', bottom: `${uN(settings.margins.bottom / 2.5)}${unit}`, left: `${paddingLeft}${unit}`, width: contentWidthStr, display: 'flex', justifyContent: 'space-between', fontFamily: 'monospace', fontSize: isScreen ? '11px' : '7.5pt', color: isScreen ? undefined : 'rgba(0,0,0,0.6)' }}>
+            {!isRightPage
+              ? <><span style={{ fontWeight: 700, color: isScreen ? undefined : '#B5714A' }}>{pageNum}</span><span style={{ opacity: 0 }}>.</span></>
+              : <><span style={{ opacity: 0 }}>.</span><span style={{ fontWeight: 700, color: isScreen ? undefined : '#B5714A' }}>{pageNum}</span></>}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   // ── BODY / default ──
   return (
     <div
       id={isScreen ? `preview-page-${pageNum}` : undefined}
-      className={isScreen ? `${themeClasses.bg} ${themeClasses.text} ${fontClass} relative shadow-xl overflow-hidden flex flex-col justify-between select-text print-sheet` : 'print-sheet'}
+      className={isScreen ? `${fontClass} relative shadow-xl overflow-hidden flex flex-col justify-between select-text print-sheet` : 'print-sheet'}
       style={{
         width: pageWidth, height: pageHeight,
         paddingTop: `${pTopPx}${unit}`, paddingBottom: `${pBottomPx}${unit}`,
         paddingLeft: `${paddingLeft}${unit}`, paddingRight: `${paddingRight}${unit}`,
         fontSize: uF(1), lineHeight: settings.lineHeight,
-        ...(isScreen ? {} : { fontFamily, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', backgroundColor: printBg, color: printFg, overflow: 'hidden' }),
+        backgroundColor: bgColorStyle,
+        color: fgColorStyle,
+        ...(isScreen ? { boxSizing: 'border-box', position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' } : { fontFamily, boxSizing: 'border-box', position: 'relative', ...printColorAdjust, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', overflow: 'hidden' }),
       }}
     >
       {cropMarks}
