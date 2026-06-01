@@ -21,12 +21,87 @@ export interface Margins {
 export type PageLayoutType = 'cover' | 'toc' | 'chapter' | 'body' | 'quote' | 'sequence' | 'header-body' | 'blank';
 export type BookTheme = 'classic' | 'modern' | 'academic' | 'zen';
 
+/**
+ * 레이아웃타입별 메타데이터
+ * 각 레이아웃의 필수 필드, 설명, 용도를 정의합니다.
+ */
+export interface LayoutTypeMetadata {
+  id: PageLayoutType;
+  label: string;
+  description: string;
+  requiredFields: string[];
+  optionalFields: string[];
+}
+
+export const LAYOUT_METADATA: Record<PageLayoutType, LayoutTypeMetadata> = {
+  cover: {
+    id: 'cover',
+    label: '표지',
+    description: '책의 표지, 제목/저자/부제목 중앙 배치',
+    requiredFields: ['title'],
+    optionalFields: ['subtitle', 'author'],
+  },
+  toc: {
+    id: 'toc',
+    label: '목차',
+    description: '목차 페이지, 챕터 카드 형식 표시',
+    requiredFields: ['tocEntries'],
+    optionalFields: ['title'],
+  },
+  chapter: {
+    id: 'chapter',
+    label: '챕터 제목',
+    description: '큼직한 챕터 제목, PART 표시',
+    requiredFields: ['title'],
+    optionalFields: ['content'],
+  },
+  body: {
+    id: 'body',
+    label: '본문',
+    description: '기본 본문 페이지, drop cap 및 running head 포함',
+    requiredFields: ['content'],
+    optionalFields: ['title'],
+  },
+  'header-body': {
+    id: 'header-body',
+    label: '제목+본문',
+    description: '섹션 제목 위에 본문 텍스트',
+    requiredFields: ['title', 'content'],
+    optionalFields: [],
+  },
+  quote: {
+    id: 'quote',
+    label: '인용구',
+    description: '이탤릭 인용 텍스트, 화면 중앙 배치',
+    requiredFields: ['content'],
+    optionalFields: [],
+  },
+  sequence: {
+    id: 'sequence',
+    label: '시퀀스',
+    description: '좌우 정렬 텍스트 (시 형식), running head 포함',
+    requiredFields: ['content'],
+    optionalFields: ['title'],
+  },
+  blank: {
+    id: 'blank',
+    label: '빈페이지',
+    description: '완전히 빈 페이지, 페이지번호만 표시 가능',
+    requiredFields: [],
+    optionalFields: [],
+  },
+};
+
 export interface TocEntry {
   chapter: string;
   pageNum: number;
   title: string;
 }
 
+/**
+ * 기저 Page 인터페이스 (호환성 유지)
+ * 런타임에서 동적으로 타입을 확인할 때 사용
+ */
 export interface Page {
   id: string;
   layoutType: PageLayoutType;
@@ -37,6 +112,21 @@ export interface Page {
   tocEntries?: TocEntry[];
   items?: string[];
 }
+
+/**
+ * Discriminated Union: layoutType별 필드 검증
+ * TypeScript 컴파일 타임에 올바른 필드 접근을 보장합니다.
+ * 예: page.layoutType === 'cover'일 때만 title, author 사용 가능
+ */
+export type PageUnion =
+  | { layoutType: 'cover'; title: string; subtitle?: string; author?: string; content?: never; tocEntries?: never; items?: never; id: string; }
+  | { layoutType: 'toc'; tocEntries: TocEntry[]; items?: string[]; title?: string; content?: never; subtitle?: never; author?: never; id: string; }
+  | { layoutType: 'chapter'; title: string; content?: string; id: string; subtitle?: never; author?: never; tocEntries?: never; items?: never; }
+  | { layoutType: 'body'; content: string; title?: string; id: string; subtitle?: never; author?: never; tocEntries?: never; items?: never; }
+  | { layoutType: 'header-body'; title: string; content: string; id: string; subtitle?: never; author?: never; tocEntries?: never; items?: never; }
+  | { layoutType: 'quote'; content: string; id: string; title?: never; subtitle?: never; author?: never; tocEntries?: never; items?: never; }
+  | { layoutType: 'sequence'; content: string; title?: string; id: string; subtitle?: never; author?: never; tocEntries?: never; items?: never; }
+  | { layoutType: 'blank'; id: string; content?: never; title?: never; subtitle?: never; author?: never; tocEntries?: never; items?: never; };
 
 export interface Book {
   id: string;
