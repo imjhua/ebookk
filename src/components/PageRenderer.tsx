@@ -225,10 +225,9 @@ export default function PageRenderer(props: PageRendererProps) {
 
       {/* Determine if running head can be shown for this layout type */}
       {(() => {
-        // Layouts that fundamentally don't support running head
-        // or have their own title display (no page-level title mixing)
-        const noRunningHeadLayouts = ['cover', 'toc', 'chapter', 'header-body', 'blank'];
-        const canShowRunningHead = showRunningHead && !noRunningHeadLayouts.includes(layoutType);
+        // Use pageTypeVisibility from GAS metadata for all layout types
+        const typeVisibility = settings.pageTypeVisibility?.[layoutType];
+        const canShowRunningHead = typeVisibility?.showRunningHead ?? settings.showRunningHead;
         
         return (
           <div style={{
@@ -237,7 +236,7 @@ export default function PageRenderer(props: PageRendererProps) {
               ? (isScreen ? '28px' : '5mm')
               : 0,
           }}>
-            {/* Running head - flexible for all layout types except fundamentally-excluded ones */}
+            {/* Running head - controlled by GAS metadata */}
             {canShowRunningHead && (
               <RunningHeadRenderer
                 show={true}

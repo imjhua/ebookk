@@ -146,6 +146,46 @@ export default function BookEditor({
                   </p>
                 </div>
 
+                {/* 페이지 요소: 쪽번호, 러닝헤드 */}
+                {currentPage && (
+                  <div style={{ paddingBottom: '1.25rem' }}>
+                    <label className="block text-[10px] font-bold mb-2" style={{ color: '#B4A99E' }}>페이지 요소</label>
+                    {[
+                      { key: 'showPageNumbers', label: '쪽번호' },
+                      { key: 'showRunningHead', label: '러닝헤드' }
+                    ].map(({ key, label }) => {
+                      const currentVisibility = settings.pageTypeVisibility?.[currentPage.layoutType] || {
+                        showPageNumbers: settings.showPageNumbers,
+                        showRunningHead: settings.showRunningHead,
+                      };
+                      return (
+                        <label key={key} className="flex items-center gap-2.5 py-2 cursor-pointer select-none text-[11px]" style={{ color: '#7A6F66' }}>
+                          <input
+                            type="checkbox"
+                            checked={currentVisibility[key as keyof typeof currentVisibility]}
+                            onChange={(e) => {
+                              const newPageTypeVisibility = {
+                                ...(settings.pageTypeVisibility || {}),
+                                [currentPage.layoutType]: {
+                                  ...(settings.pageTypeVisibility?.[currentPage.layoutType] || {
+                                    showPageNumbers: settings.showPageNumbers,
+                                    showRunningHead: settings.showRunningHead,
+                                  }),
+                                  [key]: e.target.checked,
+                                },
+                              } as Record<PageLayoutType, { showPageNumbers: boolean; showRunningHead: boolean }>;
+                              onChangeSettings({ ...settings, pageTypeVisibility: newPageTypeVisibility });
+                            }}
+                            className="w-3.5 h-3.5 rounded cursor-pointer"
+                            style={{ accentColor: '#B5714A' }}
+                          />
+                          {label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {currentPage.layoutType === 'cover' && (
                   <div className="space-y-3">
                     <FieldInput label="커버 제목"   value={currentPage.title || ''}   onChange={(v) => onUpdatePageMeta(currentPage.id, { title: v })}   placeholder="커버에 표시될 제목" />
@@ -299,45 +339,7 @@ export default function BookEditor({
                   </div>
                 )}
 
-                {/* 페이지 요소: 쪽번호, 러닝헤드 */}
-                {currentPage && (
-                  <div style={{ borderTop: '1px solid #E8E0D4', paddingTop: '1.25rem' }}>
-                    <label className="block text-[10px] font-bold mb-2" style={{ color: '#B4A99E' }}>페이지 요소</label>
-                    {[
-                      { key: 'showPageNumbers', label: '쪽번호' },
-                      { key: 'showRunningHead', label: '러닝헤드' }
-                    ].map(({ key, label }) => {
-                      const currentVisibility = settings.pageTypeVisibility?.[currentPage.layoutType] || {
-                        showPageNumbers: settings.showPageNumbers,
-                        showRunningHead: settings.showRunningHead,
-                      };
-                      return (
-                        <label key={key} className="flex items-center gap-2.5 py-2 cursor-pointer select-none text-[11px]" style={{ color: '#7A6F66' }}>
-                          <input
-                            type="checkbox"
-                            checked={currentVisibility[key as keyof typeof currentVisibility]}
-                            onChange={(e) => {
-                              const newPageTypeVisibility = {
-                                ...(settings.pageTypeVisibility || {}),
-                                [currentPage.layoutType]: {
-                                  ...(settings.pageTypeVisibility?.[currentPage.layoutType] || {
-                                    showPageNumbers: settings.showPageNumbers,
-                                    showRunningHead: settings.showRunningHead,
-                                  }),
-                                  [key]: e.target.checked,
-                                },
-                              } as Record<PageLayoutType, { showPageNumbers: boolean; showRunningHead: boolean }>;
-                              onChangeSettings({ ...settings, pageTypeVisibility: newPageTypeVisibility });
-                            }}
-                            className="w-3.5 h-3.5 rounded cursor-pointer"
-                            style={{ accentColor: '#B5714A' }}
-                          />
-                          {label}
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
+
               </>
               ) : (
               <p className="text-[11px]" style={{ color: '#aaa' }}>선택된 페이지 없음</p>

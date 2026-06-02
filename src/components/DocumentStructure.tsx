@@ -187,20 +187,28 @@ export default function DocumentStructure({
               onClick={() => onSelectPage(idx)}
               onMouseEnter={() => setHoveredIdx(idx)}
               onMouseLeave={() => setHoveredIdx(null)}
-              className="flex items-center px-4 py-3 cursor-pointer transition-colors select-none group relative"
+              className="flex items-center px-4 py-3 cursor-move transition-all select-none group relative"
               style={{
-                backgroundColor: isDragging
-                  ? 'rgba(0,0,0,0.1)'
+                backgroundColor: isDragOver
+                  ? 'rgba(181, 113, 74, 0.4)'
+                  : isDragging
+                  ? 'rgba(255, 255, 255, 0.08)'
                   : isSelected
                   ? '#1F1B17'
                   : isHovered
-                  ? 'rgba(255,255,255,0.03)'
+                  ? 'rgba(255,255,255,0.05)'
                   : 'transparent',
-                opacity: isDragging ? 0.5 : 1,
-                borderLeft: isSelected ? '3px solid #B5714A' : '3px solid transparent',
+                opacity: isDragging ? 0.7 : 1,
+                borderLeft: isDragOver
+                  ? '3px solid #FFB366'
+                  : isSelected
+                  ? '3px solid #B5714A'
+                  : '3px solid transparent',
+                borderTop: isDragOver ? '2px solid rgba(181, 113, 74, 0.6)' : 'none',
                 paddingLeft: 'calc(1rem - 3px)',
                 minHeight: '44px',
                 gap: '8px',
+                cursor: isDragging ? 'grabbing' : 'grab',
               }}
             >
               {/* Number */}
