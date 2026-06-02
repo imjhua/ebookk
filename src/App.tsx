@@ -90,13 +90,18 @@ export default function App() {
       
       if (pages && pages.length > 0) {
         console.log(`✅ 로드 성공: ${pages.length}개 페이지`);
+        // Remove page-level showPageNumbers and showRunningHead (use pageTypeVisibility instead)
+        const cleanPages = pages.map((page: any) => {
+          const { showPageNumbers, showRunningHead, ...cleanPage } = page;
+          return cleanPage;
+        });
         // Set book with title, author, theme, and pages
         setBook({
           id: 'loaded-book',
           title: result.title || '제목 없음',
           author: result.author || '',
           theme: result.theme || 'classic',
-          pages: pages,
+          pages: cleanPages,
         });
         
         // Clear undo/redo history on initial load
@@ -329,6 +334,12 @@ export default function App() {
     }
 
     // Create project data
+    // Remove page-level showPageNumbers and showRunningHead (use pageTypeVisibility instead)
+    const cleanPages = book.pages.map((page) => {
+      const { showPageNumbers, showRunningHead, ...cleanPage } = page as any;
+      return cleanPage;
+    });
+
     const projectData = {
       title: book.title,
       author: book.author,
@@ -343,7 +354,7 @@ export default function App() {
       showRunningHead: settings.showRunningHead,
       bleed: settings.bleed,
       pageTypeVisibility: settings.pageTypeVisibility,
-      pages: book.pages,
+      pages: cleanPages,
     };
 
     // Convert to JSON string
