@@ -5,7 +5,7 @@
 
 import React, { useState, useRef } from 'react';
 import { Book, Page, PageLayoutType } from '../types';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, RotateCcw, RotateCw } from 'lucide-react';
 
 const TYPE_BADGE_LABEL: Record<PageLayoutType, string> = {
   cover:       'COVER',
@@ -37,6 +37,10 @@ interface DocumentStructureProps {
   onUpdatePageTitle?: (pageId: string, title: string) => void;
   onReorderPages: (pages: Page[]) => void;
   onUpdatePageType?: (pageId: string, layoutType: PageLayoutType) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
 }
 
 export default function DocumentStructure({
@@ -48,6 +52,10 @@ export default function DocumentStructure({
   onUpdatePageTitle,
   onReorderPages,
   onUpdatePageType,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
 }: DocumentStructureProps) {
   const [selectedPageIdForTypeChange, setSelectedPageIdForTypeChange] = useState<string | null>(null);
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
@@ -113,14 +121,49 @@ export default function DocumentStructure({
         >
           DOCUMENT STRUCTURE
         </span>
-        <button
-          onClick={() => onAddPage('blank')}
-          className="p-1.5 rounded-lg transition-colors cursor-pointer"
-          style={{ color: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.05)' }}
-          title="빈 페이지 추가 (BLANK)"
-        >
-          <Plus size={14} />
-        </button>
+        <div className="flex items-center gap-1">
+          {/* Undo Button */}
+          <button
+            onClick={onUndo}
+            disabled={!canUndo}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer"
+            style={{
+              color: canUndo ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)',
+              backgroundColor: canUndo ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+              opacity: canUndo ? 1 : 0.5,
+              cursor: canUndo ? 'pointer' : 'not-allowed',
+            }}
+            title={canUndo ? '실행취소 (Undo)' : '실행취소 불가'}
+          >
+            <RotateCcw size={14} />
+          </button>
+          
+          {/* Redo Button */}
+          <button
+            onClick={onRedo}
+            disabled={!canRedo}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer"
+            style={{
+              color: canRedo ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)',
+              backgroundColor: canRedo ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+              opacity: canRedo ? 1 : 0.5,
+              cursor: canRedo ? 'pointer' : 'not-allowed',
+            }}
+            title={canRedo ? '다시실행 (Redo)' : '다시실행 불가'}
+          >
+            <RotateCw size={14} />
+          </button>
+
+          {/* Add Page Button */}
+          <button
+            onClick={() => onAddPage('blank')}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer"
+            style={{ color: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.05)' }}
+            title="빈 페이지 추가 (BLANK)"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
       </div>
 
       {/* Page List */}

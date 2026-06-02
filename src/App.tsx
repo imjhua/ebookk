@@ -6,6 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { Book, Page, PageLayoutType, PrintSettings, BookProject } from './types';
 import { useEbookSheet } from './hooks/useEbookSheet';
+import { useUndoRedo } from './hooks/useUndoRedo';
 import BookEditor from './components/BookEditor';
 import PrintSurface from './components/PrintSurface';
 import DocumentStructure from './components/DocumentStructure';
@@ -30,6 +31,9 @@ https://script.google.com/macros/s/AKfycbzl24SAZOrIiSqMuNbVE6vsQKmr4uxIg2tkrJ33L
 
 export default function App() {
   const [book, setBook] = useState<Book | null>(null);
+
+  // Undo/Redo state management for page operations (delete, reorder)
+  const undoRedo = useUndoRedo(book);
 
   // Page navigation state
   const [selectedPageIndex, setSelectedPageIndex] = useState<number>(0);
@@ -94,6 +98,9 @@ export default function App() {
           theme: result.theme || 'classic',
           pages: pages,
         });
+        
+        // Clear undo/redo history on initial load
+        undoRedo.clear();
         
         // Set settings with print/format configuration
         setSettings({
@@ -208,6 +215,9 @@ export default function App() {
 
   const handleDeletePage = (pageId: string) => {
     if (!book) return;
+    // Push current state to undo history before deletion
+    undoRedo.pushState(book);
+    
     const pageIndex = book.pages.findIndex((p) => p.id === pageId);
     const updatedPages = book.pages.filter((p) => p.id !== pageId);
     handleUpdateBook({ ...book, pages: updatedPages });
@@ -221,7 +231,23 @@ export default function App() {
 
   const handleReorderPages = (pages: Page[]) => {
     if (!book) return;
+    // Push current state to undo history before reordering
+    undoRedo.pushState(book);
     handleUpdateBook({ ...book, pages });
+  };
+
+  const handleUndo = () => {
+    const previousBook = undoRedo.undo();
+    if (previousBook) {
+      setBook(previousBook);
+    }
+  };
+
+  const handleRedo = () => {
+    const nextBook = undoRedo.redo();
+    if (nextBook) {
+      setBook(nextBook);
+    }
   };
 
   const handlePrint = () => {
@@ -436,6 +462,10 @@ export default function App() {
           onUpdatePageTitle={handleUpdatePageTitle}
           onReorderPages={handleReorderPages}
           onUpdatePageType={handleUpdatePageType}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={undoRedo.canUndo}
+          canRedo={undoRedo.canRedo}
         />
 
         {/* ── CENTER: Book View ── */}
