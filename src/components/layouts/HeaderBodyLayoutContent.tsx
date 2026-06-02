@@ -12,9 +12,27 @@ export default function HeaderBodyLayoutContent({
   settings,
 }: LayoutContentProps) {
   return (
-    <div style={{ height: '100%', width: '100%', overflow: 'hidden', position: 'relative' }}>
+    <div style={{ height: '100%', width: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      {/* Page title - independent of running head */}
+      {page.title && (
+        <div
+          style={{
+            fontSize: uF(1.6),
+            fontWeight: 700,
+            lineHeight: 1.3,
+            marginBottom: uF(0.8),
+            paddingBottom: uF(0.4),
+            borderBottom: `1px solid rgba(0,0,0,0.15)`,
+          }}
+        >
+          {page.title}
+        </div>
+      )}
+      
+      {/* Content body with drop cap */}
       <div
         style={{
+          flex: 1,
           fontSize: uF(1),
           lineHeight: settings.lineHeight,
           overflow: 'hidden',

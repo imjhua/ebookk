@@ -193,23 +193,8 @@ npm run dev
 
 ## 📚 Google Sheets 데이터 구조 (최신 버전)
 
-### **Defaults Sheet (기본값 설정)**
-```
-Defaults Sheet (1행만 사용 - 필수!)
-├─ A2: 테마 (e.g., 'classic') 
-├─ B2: 페이지 판형 (e.g., 'a5')
-├─ C2: 여백 JSON (e.g., '{"top":21,"bottom":21,"inner":21,"outer":15}')
-├─ D2: 서체 (e.g., 'Noto Serif KR')
-├─ E2: 본문크기 (e.g., 10)
-├─ F2: 행간 (e.g., 1.65)
-├─ G2: 재단선표시 (e.g., 'TRUE')
-├─ H2: 쪽번호표시 (e.g., 'TRUE')
-├─ I2: 러닝헤드표시 (e.g., 'TRUE')
-├─ J2: 블리드 (e.g., 3)
-└─ K2: 비어있음 (예약됨)
-```
-
 ### **Metadata Sheet (책 정보 + 포맷 설정)**
+
 ```
 Metadata Sheet (1행만 사용)
 ├─ A2: 제목 (e.g., '빈야사 플로우: 새벽의 요가')
@@ -228,6 +213,7 @@ Metadata Sheet (1행만 사용)
 ```
 
 ### **PageOrder Sheet**
+
 ```
 PageOrder Sheet (페이지 순서 관리)
 ├─ 행 2: ID, 페이지타입, 순서번호
@@ -236,6 +222,7 @@ PageOrder Sheet (페이지 순서 관리)
 ```
 
 ### **Page Type Sheets (페이지별 콘텐츠)**
+
 ```
 Cover Sheet (표지 페이지)
 ├─ 행 2: id, 제목, 부제, 저자
@@ -277,46 +264,12 @@ Quote Sheet (인용)
 | 항목 | 구 버전 | 신 버전 |
 |------|--------|--------|
 | **Metadata 필드** | 4개 (title, theme, standard, bindingMargin) | 13개 (title, author, theme, paperSize, margins JSON, fontFamily, fontSize, lineHeight, showCropMarks, showPageNumbers, showRunningHead, bleed, 예약) |
-| **포맷 설정 관리** | 코드에 하드코딩 | Defaults 시트 + Metadata 시트에서 관리 |
+| **포맷 설정 관리** | 코드에 하드코딩 | Metadata 시트에서 관리 |
 | **페이지 판형** | `standard` 필드 | `paperSize` 필드로 개명 |
 | **여백** | `bindingMargin` (단수) | `margins` JSON (4개 필드: top, bottom, inner, outer) |
-| **GAS 응답** | `{metadata, pages}` | `{defaults, metadata, pages}` |
+| **GAS 응답** | `{metadata, pages}` | `{metadata, pages}` |
 | **저장 방식** | 메타데이터/페이지 따로 저장 | `syncAll()` 한 번에 전체 저장 |
-| **기본값 설정** | 코드에서 관리 | Defaults 시트에서 중앙 관리 |
-
----
-
-## 🔧 Defaults 시트 수동 생성 (선택사항)
-
-기존 Spreadsheet를 사용 중이라면 Defaults 시트를 수동으로 추가하세요:
-
-1. Google Sheets 열기
-2. **`+`** 버튼으로 새 시트 추가
-3. 시트명을 정확히 **`Defaults`**로 설정
-4. 1행 (A1:K1)에 다음 헤더 추가:
-   - A1: `theme`
-   - B1: `paperSize`
-   - C1: `margins`
-   - D1: `fontFamily`
-   - E1: `fontSize`
-   - F1: `lineHeight`
-   - G1: `showCropMarks`
-   - H1: `showPageNumbers`
-   - I1: `showRunningHead`
-   - J1: `bleed`
-   - K1: (비어있음 - 예약됨)
-
-5. 2행 (A2:K2)에 기본값 추가:
-   - A2: `classic`
-   - B2: `a5`
-   - C2: `{"top":21,"bottom":21,"inner":21,"outer":15}`
-   - D2: `Noto Serif KR`
-   - E2: `10`
-   - F2: `1.65`
-   - G2: `TRUE`
-   - H2: `TRUE`
-   - I2: `TRUE`
-   - J2: `3`
+| **기본값 설정** | 코드에서 관리 | 코드에서 중앙 관리 |
 
 ---
 
@@ -326,7 +279,7 @@ Quote Sheet (인용)
 
 1. `npm run dev` 실행
 2. `http://localhost:3000` 접속
-3. 앱이 자동으로 Google Sheets에서 데이터 로드 (기본값 + 메타데이터)
+3. 앱이 자동으로 Google Sheets에서 데이터 로드 (메타데이터)
 4. Metadata 영역에 책 제목과 테마가 표시됨 ✅
 
 ### **Test 2: 앱에서 데이터 수정 후 저장**
@@ -353,13 +306,8 @@ Quote Sheet (인용)
 
 ## 🆘 문제 해결
 
-### **"ERROR: Failed to parse defaults"**
-
-- ❌ Defaults 시트가 없거나 형식이 잘못됨
-- ✅ 해결: 위의 "Defaults 시트 수동 생성" 섹션 참고
-
 ### **여백이나 포맷 설정이 로드되지 않음**
 
 - ❌ Metadata 시트의 필드가 불완전함
 - ✅ 해결: Metadata 시트가 13개 열을 모두 가지고 있는지 확인
-- 📝 참고: 이전 버전(4개 열)에서 업그레이드한 경우, 기존 데이터를 새 필드로 수동 이동 필요
+- 📝 참고: 코드의 DEFAULTS 객체에 기본값이 정의되어 있으므로, Metadata에서 값이 없으면 자동으로 기본값 사용

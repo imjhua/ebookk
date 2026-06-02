@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { PageData, BookProject } from '../types';
+import { createDefaultBookProject } from '../defaultSettings';
 
 interface UseEbookSheetReturn {
   loading: boolean;
@@ -17,10 +18,11 @@ export function useEbookSheet(gasWebAppUrl: string): UseEbookSheetReturn {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async (): Promise<BookProject> => {
+    // GAS URL이 없으면 기본값 반환
     if (!gasWebAppUrl) {
-      const errorMsg = '❌ GAS Web App URL이 설정되지 않았습니다.\n constants.ts에서 VITE_GAS_WEB_APP_URL을 확인하세요.';
+      const errorMsg = '⚠️ GAS Web App URL이 설정되지 않았습니다. 기본값을 표시합니다.';
       setError(errorMsg);
-      throw new Error(errorMsg);
+      return createDefaultBookProject();
     }
 
     setLoading(true);
@@ -44,8 +46,9 @@ export function useEbookSheet(gasWebAppUrl: string): UseEbookSheetReturn {
         throw new Error(result.message || 'Failed to load data');
       }
 
-      // 기본값 병합 (GAS Defaults 시트에서 제공)
-      const defaults = result.defaults || {
+      // 기본값 (코드에서 직접 관리)
+      const DEFAULTS = {
+        theme: 'classic',
         paperSize: 'a5',
         margins: { top: 21, bottom: 21, inner: 21, outer: 15 },
         fontFamily: 'Noto Serif KR',
@@ -60,16 +63,17 @@ export function useEbookSheet(gasWebAppUrl: string): UseEbookSheetReturn {
       return {
         title: result.metadata.title || '',
         author: result.metadata.author || '',
-        theme: result.metadata.theme || defaults.theme,
-        paperSize: result.metadata.paperSize || defaults.paperSize,
-        margins: result.metadata.margins || defaults.margins,
-        fontFamily: result.metadata.fontFamily || defaults.fontFamily,
-        fontSize: result.metadata.fontSize || defaults.fontSize,
-        lineHeight: result.metadata.lineHeight || defaults.lineHeight,
-        showCropMarks: result.metadata.showCropMarks ?? defaults.showCropMarks,
-        showPageNumbers: result.metadata.showPageNumbers ?? defaults.showPageNumbers,
-        showRunningHead: result.metadata.showRunningHead ?? defaults.showRunningHead,
-        bleed: result.metadata.bleed || defaults.bleed,
+        theme: result.metadata.theme || DEFAULTS.theme,
+        paperSize: result.metadata.paperSize || DEFAULTS.paperSize,
+        margins: result.metadata.margins || DEFAULTS.margins,
+        fontFamily: result.metadata.fontFamily || DEFAULTS.fontFamily,
+        fontSize: result.metadata.fontSize || DEFAULTS.fontSize,
+        lineHeight: result.metadata.lineHeight || DEFAULTS.lineHeight,
+        showCropMarks: result.metadata.showCropMarks ?? DEFAULTS.showCropMarks,
+        showPageNumbers: result.metadata.showPageNumbers ?? DEFAULTS.showPageNumbers,
+        showRunningHead: result.metadata.showRunningHead ?? DEFAULTS.showRunningHead,
+        bleed: result.metadata.bleed || DEFAULTS.bleed,
+        pageTypeVisibility: result.metadata.pageTypeVisibility,
         pages: result.pages || [],
       };
     } catch (err) {
@@ -82,8 +86,11 @@ export function useEbookSheet(gasWebAppUrl: string): UseEbookSheetReturn {
         displayMsg = `❌ GAS Web App에 연결할 수 없습니다.\n\n원인: 잘못된 URL이거나 배포되지 않았을 수 있습니다.\n\n해결 방법:\n1. GAS_URL이 올바른지 확인하세요\n2. 배포되었는지 확인하세요\n3. 네트워크 연결을 확인하세요`;
       }
       
+      // 에러 상태 설정
       setError(displayMsg);
-      throw err;
+      
+      // 기본값 프로젝트 반환 (GAS 데이터 없을 시에도 화면 표시)
+      return createDefaultBookProject();
     } finally {
       setLoading(false);
     }
@@ -235,6 +242,9 @@ export function useEbookSheet(gasWebAppUrl: string): UseEbookSheetReturn {
         throw new Error('GAS_WEB_APP_URL is not configured');
       }
 
+      setLoading(true);
+      setError(null);
+
       try {
         const response = await fetch(gasWebAppUrl, {
           method: 'POST',
@@ -254,6 +264,7 @@ export function useEbookSheet(gasWebAppUrl: string): UseEbookSheetReturn {
                 showPageNumbers: project.showPageNumbers,
                 showRunningHead: project.showRunningHead,
                 bleed: project.bleed,
+                pageTypeVisibility: project.pageTypeVisibility,
               },
               pages: project.pages,
             },
@@ -269,6 +280,8 @@ export function useEbookSheet(gasWebAppUrl: string): UseEbookSheetReturn {
         const errorMsg = err instanceof Error ? err.message : 'Unknown error';
         setError(errorMsg);
         throw err;
+      } finally {
+        setLoading(false);
       }
     },
     [gasWebAppUrl]

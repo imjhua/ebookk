@@ -10,8 +10,7 @@ function autoSetupEbookSheets() {
 
   // ===== 1. 시트 구조 정의 =====
   const sheetConfig = {
-    'Defaults':    ['theme', 'paperSize', 'margins', 'fontFamily', 'fontSize', 'lineHeight', 'showCropMarks', 'showPageNumbers', 'showRunningHead', 'bleed', 'reserved'],
-    'Metadata':    ['title', 'author', 'theme', 'paperSize', 'margins', 'fontFamily', 'fontSize', 'lineHeight', 'showCropMarks', 'showPageNumbers', 'showRunningHead', 'bleed', 'reserved'],
+    'Metadata':    ['title', 'author', 'theme', 'paperSize', 'margins', 'fontFamily', 'fontSize', 'lineHeight', 'showCropMarks', 'bleed', 'cover_showPageNumbers', 'cover_showRunningHead', 'toc_showPageNumbers', 'toc_showRunningHead', 'chapter_showPageNumbers', 'chapter_showRunningHead', 'body_showPageNumbers', 'body_showRunningHead', 'quote_showPageNumbers', 'quote_showRunningHead', 'sequence_showPageNumbers', 'sequence_showRunningHead', 'header-body_showPageNumbers', 'header-body_showRunningHead', 'blank_showPageNumbers', 'blank_showRunningHead'],
     'PageOrder':   ['id', 'pageType', 'orderIndex'],
     'Cover':       ['id', 'title', 'subtitle', 'author'],
     'TOC':         ['id', 'title', 'tocEntries_json'],
@@ -36,7 +35,6 @@ function autoSetupEbookSheets() {
   Logger.log('✅ 10개 시트 초기화 완료');
 
   // ===== 3. 샘플 데이터 (일괄 작성) =====
-  const defaultsData = ['classic', 'a5', JSON.stringify({top: 21, bottom: 21, inner: 21, outer: 15}), 'Noto Serif KR', 10, 1.65, 'TRUE', 'TRUE', 'TRUE', 3, ''];
   const tocEntries = [
     { chapter: 'Chapter 01', title: '기본 호흡법', pageNumber: '5' },
     { chapter: 'Chapter 02', title: '워밍업', pageNumber: '12' },
@@ -46,8 +44,26 @@ function autoSetupEbookSheets() {
   const metadataMargins = JSON.stringify({top: 21, bottom: 21, inner: 21, outer: 15});
 
   const sampleData = {
-    'Defaults':    [[defaultsData[0], defaultsData[1], defaultsData[2], defaultsData[3], defaultsData[4], defaultsData[5], defaultsData[6], defaultsData[7], defaultsData[8], defaultsData[9], defaultsData[10]]],
-    'Metadata':    [['빈야사 플로우: 새벽의 요가', '요가 강사 김상호', 'classic', 'a5', metadataMargins, 'Noto Serif KR', 10, 1.65, 'TRUE', 'TRUE', 'TRUE', 3, '']],
+    'Metadata':    [[
+      '빈야사 플로우: 새벽의 요가',                          // title (0)
+      '요가 강사 김상호',                                 // author (1)
+      'classic',                                        // theme (2)
+      'a5',                                             // paperSize (3)
+      metadataMargins,                                  // margins (4)
+      'Noto Serif KR',                                  // fontFamily (5)
+      10,                                               // fontSize (6)
+      1.65,                                             // lineHeight (7)
+      'TRUE',                                           // showCropMarks (8)
+      3,                                                // bleed (9)
+      'FALSE', 'FALSE',                                 // cover_showPageNumbers, cover_showRunningHead (10-11)
+      'TRUE', 'FALSE',                                  // toc_showPageNumbers, toc_showRunningHead (12-13)
+      'FALSE', 'FALSE',                                 // chapter_showPageNumbers, chapter_showRunningHead (14-15)
+      'TRUE', 'TRUE',                                   // body_showPageNumbers, body_showRunningHead (16-17)
+      'TRUE', 'TRUE',                                   // quote_showPageNumbers, quote_showRunningHead (18-19)
+      'TRUE', 'TRUE',                                   // sequence_showPageNumbers, sequence_showRunningHead (20-21)
+      'TRUE', 'TRUE',                                   // header-body_showPageNumbers, header-body_showRunningHead (22-23)
+      'FALSE', 'FALSE'                                  // blank_showPageNumbers, blank_showRunningHead (24-25)
+    ]],
     'Cover':       [['cover-row-2', '~~~ 커버 빈야사 플로우: 새벽의 요가', 'Morning Flow', '요가 강사 김상호']],
     'TOC':         [['toc-row-2', '목차', JSON.stringify(tocEntries)]],
     'Chapter':     [['chapter-row-2', 'CHAPTER 01', '기본 호흡법', '이 챕터에서는 요가의 기본이 되는 호흡법을 배웁니다.']],
@@ -63,8 +79,7 @@ function autoSetupEbookSheets() {
       ['header-body-row-2', 'header-body', 4],
       ['body-row-2', 'body', 5],
       ['blank-row-2', 'blank', 6],
-      ['quote-row-2', 'quote', 7],
-      ['quote-row-2', 'quote', 6]
+      ['quote-row-2', 'quote', 7]
     ]
   };
 

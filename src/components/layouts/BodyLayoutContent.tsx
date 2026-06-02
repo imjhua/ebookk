@@ -12,9 +12,27 @@ export default function BodyLayoutContent({
   settings,
 }: LayoutContentProps) {
   return (
-    <div style={{ height: '100%', width: '100%', overflow: 'hidden', position: 'relative' }}>
+    <div style={{ height: '100%', width: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      {/* Page title - if provided */}
+      {page.title && (
+        <div
+          style={{
+            fontSize: uF(1.4),
+            fontWeight: 600,
+            lineHeight: 1.3,
+            marginBottom: uF(0.6),
+            paddingBottom: uF(0.3),
+            borderBottom: `1px solid rgba(0,0,0,0.1)`,
+          }}
+        >
+          {page.title}
+        </div>
+      )}
+      
+      {/* Content with drop cap */}
       <div
         style={{
+          flex: 1,
           fontSize: uF(1),
           lineHeight: settings.lineHeight,
           overflow: 'hidden',

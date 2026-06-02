@@ -29,21 +29,38 @@ export default function PrintSurface({ book, settings, paperTheme = 'white' }: P
     };
   }, [paperSize.width, paperSize.height]);
 
+  // ── Get the most recent chapter title up to a given page index ──
+  // Running head should only show chapter titles, not page-level titles
+  const getChapterTitleForPage = (pageIndex: number): string => {
+    for (let i = pageIndex; i >= 0; i--) {
+      const page = book.pages[i];
+      // Only chapter layout titles are used for running head
+      if (page.layoutType === 'chapter' && page.title) {
+        return page.title;
+      }
+    }
+    return '';
+  };
+
   return (
     <div id="print-book-surface">
-      {book.pages.map((page, index) => (
-        <React.Fragment key={page.id}>
-        <PageRenderer
-          page={page}
-          pageIndex={index}
-          isRightPage={index % 2 === 0}
-          book={book}
-          settings={settings}
-          mode="print"
-          paperTheme={paperTheme}
-        />
-        </React.Fragment>
-      ))}
+      {book.pages.map((page, index) => {
+        const currentSectionTitle = getChapterTitleForPage(index);
+        return (
+          <React.Fragment key={page.id}>
+          <PageRenderer
+            page={page}
+            pageIndex={index}
+            isRightPage={index % 2 === 0}
+            book={book}
+            settings={settings}
+            mode="print"
+            paperTheme={paperTheme}
+            currentSectionTitle={currentSectionTitle}
+          />
+          </React.Fragment>
+        );
+      })}
     </div>
   );
 }

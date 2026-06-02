@@ -18,6 +18,24 @@ export default function SequenceLayoutContent({
 
   return (
     <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {/* Poem title - if provided */}
+      {page.title && (
+        <div
+          style={{
+            fontSize: uF(1.5),
+            fontWeight: 600,
+            lineHeight: 1.3,
+            marginBottom: uF(0.8),
+            paddingBottom: uF(0.4),
+            borderBottom: `1px solid rgba(0,0,0,0.12)`,
+            textAlign: 'center',
+          }}
+        >
+          {page.title}
+        </div>
+      )}
+      
+      {/* Sequence entries */}
       {seqEntries.map((entry, i) => (
         <div
           key={i}

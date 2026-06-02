@@ -3,7 +3,6 @@
 
 const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
 const SHEET_NAMES = {
-  defaults: 'Defaults',
   metadata: 'Metadata',
   cover: 'Cover',
   toc: 'TOC',
@@ -14,6 +13,8 @@ const SHEET_NAMES = {
   headerBody: 'Header-Body',
   quote: 'Quote'
 };
+
+// 기본값은 Metadata 시트에서 페이지 타입별로 관리됨
 
 const PAGE_TYPE_SHEETS = {
   'cover': 'Cover',
@@ -34,36 +35,47 @@ function doGet(e) {
     // 모든 시트를 한 번에 가져오기
     ss.getSheets().forEach(s => { sheets[s.getName()] = s; });
     
-    // Load Defaults
-    const defaultsSheet = sheets[SHEET_NAMES.defaults];
-    const defaults = _loadDefaults(defaultsSheet);
-    
-    // Load Metadata (10 fields now)
+    // Load Metadata (26 columns: 10 base + 16 page-type-specific)
     const metadataSheet = sheets[SHEET_NAMES.metadata];
-    const metadataRow = metadataSheet.getRange(2, 1, 1, 13).getValues()[0];
+    const metadataRow = metadataSheet.getRange(2, 1, 1, 26).getValues()[0];
     const metadata = {
       title: metadataRow[0] || '',
       author: metadataRow[1] || '',
-      theme: metadataRow[2] || defaults.theme,
-      paperSize: metadataRow[3] || defaults.paperSize,
-      margins: _parseMargins(metadataRow[4]) || defaults.margins,
-      fontFamily: metadataRow[5] || defaults.fontFamily,
-      fontSize: _parseNumber(metadataRow[6]) || defaults.fontSize,
-      lineHeight: _parseNumber(metadataRow[7]) || defaults.lineHeight,
-      showCropMarks: _parseBoolean(metadataRow[8]) ?? defaults.showCropMarks,
-      showPageNumbers: _parseBoolean(metadataRow[9]) ?? defaults.showPageNumbers,
-      showRunningHead: _parseBoolean(metadataRow[10]) ?? defaults.showRunningHead,
-      bleed: _parseNumber(metadataRow[11]) || defaults.bleed,
+      theme: metadataRow[2] || 'classic',
+      paperSize: metadataRow[3] || 'a5',
+      margins: _parseMargins(metadataRow[4]) || { top: 21, bottom: 21, inner: 21, outer: 15 },
+      fontFamily: metadataRow[5] || 'Noto Serif KR',
+      fontSize: _parseNumber(metadataRow[6]) || 10,
+      lineHeight: _parseNumber(metadataRow[7]) || 1.65,
+      showCropMarks: _parseBoolean(metadataRow[8]) ?? true,
+      bleed: _parseNumber(metadataRow[9]) || 3,
     };
 
-    // Load PageOrder 정보
+    // Page type-specific visibility settings (from metadata columns 10-25)
+    const pageTypeNames = ['cover', 'toc', 'chapter', 'body', 'quote', 'sequence', 'header-body', 'blank'];
+    const pageTypeVisibility = {};
+    pageTypeNames.forEach((pageType, idx) => {
+      const baseCol = 10 + (idx * 2);
+      pageTypeVisibility[pageType] = {
+        showPageNumbers: _parseBoolean(metadataRow[baseCol]) ?? true,
+        showRunningHead: _parseBoolean(metadataRow[baseCol + 1]) ?? true,
+      };
+    });
+    
+    // Add pageTypeVisibility to metadata for frontend
+    metadata.pageTypeVisibility = pageTypeVisibility;
+
+    // Load PageOrder (id, pageType, orderIndex only - 3 columns)
     const pageOrderMap = {};
     const pageOrderSheet = sheets['PageOrder'];
     if (pageOrderSheet && pageOrderSheet.getLastRow() > 1) {
       const orderData = pageOrderSheet.getRange(2, 1, pageOrderSheet.getLastRow() - 1, 3).getValues();
       for (let i = 0; i < orderData.length; i++) {
         if (orderData[i][0]) {
-          pageOrderMap[orderData[i][0]] = orderData[i][2] !== '' ? orderData[i][2] : i;
+          pageOrderMap[orderData[i][0]] = {
+            order: orderData[i][2] !== '' ? orderData[i][2] : i,
+            pageType: orderData[i][1],
+          };
         }
       }
     }
@@ -82,20 +94,25 @@ function doGet(e) {
         if (!row[0] || row[0].toString().trim() === '') continue;
         
         const pageData = _rowToObject(pageType, row, i + 2);
+        
+        // Add page-type visibility settings from metadata
+        const typeSettings = pageTypeVisibility[pageType] || { showPageNumbers: true, showRunningHead: true };
+        pageData.showPageNumbers = typeSettings.showPageNumbers;
+        pageData.showRunningHead = typeSettings.showRunningHead;
+        
         pages.push(pageData);
       }
     });
 
     // PageOrder 기준으로 정렬
     pages.sort((a, b) => {
-      const orderA = pageOrderMap[a.id] !== undefined ? pageOrderMap[a.id] : 999;
-      const orderB = pageOrderMap[b.id] !== undefined ? pageOrderMap[b.id] : 999;
+      const orderA = pageOrderMap[a.id]?.order ?? 999;
+      const orderB = pageOrderMap[b.id]?.order ?? 999;
       return orderA - orderB;
     });
 
     return ContentService.createTextOutput(JSON.stringify({
       status: 'success',
-      defaults: defaults,
       metadata: metadata,
       pages: pages
     }))
@@ -126,12 +143,34 @@ function doPost(e) {
     // ===== METADATA UPDATE =====
     if (action === 'updateMetadata') {
       const metadataSheet = ss.getSheetByName(SHEET_NAMES.metadata);
-      metadataSheet.getRange(2, 1, 1, 4).setValues([[
-        data.title || '',
-        data.theme || 'classic',
-        data.standard || 'A5',
-        data.bindingMargin || 5
-      ]]);
+      const marginStr = typeof data.metadata.margins === 'string' 
+        ? data.metadata.margins 
+        : JSON.stringify(data.metadata.margins);
+      
+      // Build 26-column array
+      const pageTypeNames = ['cover', 'toc', 'chapter', 'body', 'quote', 'sequence', 'header-body', 'blank'];
+      const metadataValues = [
+        data.metadata.title || '',
+        data.metadata.author || '',
+        data.metadata.theme || 'classic',
+        data.metadata.paperSize || 'a5',
+        marginStr,
+        data.metadata.fontFamily || 'Noto Serif KR',
+        data.metadata.fontSize || 10,
+        data.metadata.lineHeight || 1.65,
+        data.metadata.showCropMarks ? 'TRUE' : 'FALSE',
+        data.metadata.bleed || 3,
+      ];
+      
+      // Add page-type-specific settings (columns 10-25)
+      const pageTypeVisibility = data.metadata.pageTypeVisibility || {};
+      pageTypeNames.forEach((pageType) => {
+        const settings = pageTypeVisibility[pageType] || { showPageNumbers: true, showRunningHead: true };
+        metadataValues.push(settings.showPageNumbers ? 'TRUE' : 'FALSE');
+        metadataValues.push(settings.showRunningHead ? 'TRUE' : 'FALSE');
+      });
+      
+      metadataSheet.getRange(2, 1, 1, 26).setValues([metadataValues]);
       return ContentService.createTextOutput(JSON.stringify({
         status: 'success',
         message: 'Metadata updated'
@@ -162,10 +201,11 @@ function doPost(e) {
         if (!s) return;
         const rowValues = _objectToRow(pType, page);
         s.appendRow(rowValues);
+        // PageOrder: only id, pageType, orderIndex (3 columns)
         orderEntries.push([page.id, pType, idx]);
       });
 
-      // PageOrder 시트 갱신
+      // PageOrder 시트 갱신 (3 columns only)
       const pageOrderSheet = ss.getSheetByName('PageOrder');
       if (pageOrderSheet) {
         if (pageOrderSheet.getLastRow() > 1) {
@@ -176,13 +216,16 @@ function doPost(e) {
         }
       }
 
-      // Metadata 저장 (12 fields now, including format settings)
+      // Metadata 저장 (26 columns)
       if (data.metadata) {
         const metadataSheet = ss.getSheetByName(SHEET_NAMES.metadata);
         const marginStr = typeof data.metadata.margins === 'string' 
           ? data.metadata.margins 
           : JSON.stringify(data.metadata.margins);
-        metadataSheet.getRange(2, 1, 1, 13).setValues([[
+        
+        // Build 26-column array
+        const pageTypeNames = ['cover', 'toc', 'chapter', 'body', 'quote', 'sequence', 'header-body', 'blank'];
+        const metadataValues = [
           data.metadata.title || '',
           data.metadata.author || '',
           data.metadata.theme || 'classic',
@@ -192,11 +235,18 @@ function doPost(e) {
           data.metadata.fontSize || 10,
           data.metadata.lineHeight || 1.65,
           data.metadata.showCropMarks ? 'TRUE' : 'FALSE',
-          data.metadata.showPageNumbers ? 'TRUE' : 'FALSE',
-          data.metadata.showRunningHead ? 'TRUE' : 'FALSE',
           data.metadata.bleed || 3,
-          '' // Reserved for future use
-        ]]);
+        ];
+        
+        // Add page-type-specific settings (columns 10-25)
+        const pageTypeVisibility = data.metadata.pageTypeVisibility || {};
+        pageTypeNames.forEach((pageType) => {
+          const settings = pageTypeVisibility[pageType] || { showPageNumbers: true, showRunningHead: true };
+          metadataValues.push(settings.showPageNumbers ? 'TRUE' : 'FALSE');
+          metadataValues.push(settings.showRunningHead ? 'TRUE' : 'FALSE');
+        });
+        
+        metadataSheet.getRange(2, 1, 1, 26).setValues([metadataValues]);
       }
 
       return ContentService.createTextOutput(JSON.stringify({
@@ -240,7 +290,7 @@ function doPost(e) {
       const rowValues = _objectToRow(pageType, data);
       sheet.appendRow(rowValues);
       
-      // PageOrder 시트에도 새 페이지 추가
+      // PageOrder 시트에도 새 페이지 추가 (3 columns only)
       const pageOrderSheet = ss.getSheetByName('PageOrder');
       if (pageOrderSheet) {
         const lastOrder = pageOrderSheet.getLastRow() - 1; // 헤더 제외
@@ -271,7 +321,7 @@ function doPost(e) {
 
 function _rowToObject(pageType, row, rowIndex) {
   const obj = {
-    id: `${pageType}-row-${rowIndex}`,
+    id: row[0] || `${pageType}-row-${rowIndex}`,
     layoutType: pageType,
   };
 
@@ -378,44 +428,7 @@ function _objectToRow(pageType, obj) {
 
 // ===== PARSING HELPERS =====
 
-function _loadDefaults(sheet) {
-  if (!sheet || sheet.getLastRow() < 2) {
-    return _getHardcodedDefaults();
-  }
 
-  try {
-    const data = sheet.getRange(2, 1, 1, 11).getValues()[0];
-    return {
-      theme: data[0] || 'classic',
-      paperSize: data[1] || 'a5',
-      margins: _parseMargins(data[2]) || { top: 21, bottom: 21, inner: 21, outer: 15 },
-      fontFamily: data[3] || 'Noto Serif KR',
-      fontSize: _parseNumber(data[4]) || 10,
-      lineHeight: _parseNumber(data[5]) || 1.65,
-      showCropMarks: _parseBoolean(data[6]) ?? true,
-      showPageNumbers: _parseBoolean(data[7]) ?? true,
-      showRunningHead: _parseBoolean(data[8]) ?? true,
-      bleed: _parseNumber(data[9]) || 3,
-    };
-  } catch (e) {
-    return _getHardcodedDefaults();
-  }
-}
-
-function _getHardcodedDefaults() {
-  return {
-    theme: 'classic',
-    paperSize: 'a5',
-    margins: { top: 21, bottom: 21, inner: 21, outer: 15 },
-    fontFamily: 'Noto Serif KR',
-    fontSize: 10,
-    lineHeight: 1.65,
-    showCropMarks: true,
-    showPageNumbers: true,
-    showRunningHead: true,
-    bleed: 3,
-  };
-}
 
 function _parseMargins(value) {
   if (!value) return null;

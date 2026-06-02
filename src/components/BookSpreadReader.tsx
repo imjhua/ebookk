@@ -54,6 +54,19 @@ export default function BookSpreadReader({
     dark:   '#1C1C1C',
   }[paperTheme];
 
+  // ── Get the most recent chapter title up to a given page index ──
+  // Running head should only show chapter titles, not page-level titles
+  const getChapterTitleForPage = (pageIndex: number): string => {
+    for (let i = pageIndex; i >= 0; i--) {
+      const page = pages[i];
+      // Only chapter layout titles are used for running head
+      if (page.layoutType === 'chapter' && page.title) {
+        return page.title;
+      }
+    }
+    return '';
+  };
+
   // ─── PAGE RENDERER (delegates to shared PageRenderer component) ───
   const renderPage = (pageIndex: number, isRightPage: boolean) => {
     const pageWidth  = `${paperSize.width  * scale}px`;
@@ -72,6 +85,8 @@ export default function BookSpreadReader({
       );
     }
 
+    const currentSectionTitle = getChapterTitleForPage(pageIndex);
+
     return (
       <PageRenderer
         page={pages[pageIndex]}
@@ -82,6 +97,7 @@ export default function BookSpreadReader({
         mode="screen"
         scale={scale}
         paperTheme={paperTheme}
+        currentSectionTitle={currentSectionTitle}
       />
     );
   };
@@ -106,6 +122,7 @@ export default function BookSpreadReader({
         >
           {pages.map((page, index) => {
             const isSelected = index === currentPageSpread || index === currentPageSpread + 1;
+            const currentSectionTitle = getChapterTitleForPage(index);
             return (
               <div
                 key={page.id}
@@ -132,6 +149,7 @@ export default function BookSpreadReader({
                     mode="screen"
                     scale={thumbScale}
                     paperTheme={paperTheme}
+                    currentSectionTitle={currentSectionTitle}
                   />
                 </div>
                 <span

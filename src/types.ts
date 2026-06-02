@@ -149,10 +149,11 @@ export interface BookProject {
   fontSize: number;
   lineHeight: number;
   showCropMarks: boolean;
-  showPageNumbers: boolean;
-  showRunningHead: boolean;
+  showPageNumbers: boolean;  // Global default (deprecated)
+  showRunningHead: boolean;  // Global default (deprecated)
   bleed: number;
   pages: Page[];
+  pageTypeVisibility?: Record<PageLayoutType, { showPageNumbers: boolean; showRunningHead: boolean }>;
 }
 
 export interface PrintSettings {
@@ -162,9 +163,11 @@ export interface PrintSettings {
   fontSize: number; // in pt (e.g. 10, 10.5, 11, 12)
   lineHeight: number; // e.g. 1.6, 1.8
   showCropMarks: boolean;
-  showPageNumbers: boolean;
-  showRunningHead: boolean;
+  showPageNumbers: boolean;  // Global default (fallback)
+  showRunningHead: boolean;  // Global default (fallback)
   bleed: number; // bleed margin in mm (default 3)
+  // Page-type-specific visibility settings from Metadata
+  pageTypeVisibility?: Record<PageLayoutType, { showPageNumbers: boolean; showRunningHead: boolean }>;
 }
 
 export const PRESET_PAPER_SIZES: PaperSize[] = [

@@ -23,6 +23,11 @@ import {
 } from 'lucide-react';
 import BookSpreadReader, { PaperTheme } from './components/BookSpreadReader';
 
+  
+const GAS_URL = `
+https://script.google.com/macros/s/AKfycbzl24SAZOrIiSqMuNbVE6vsQKmr4uxIg2tkrJ33Lm2GtT6Wo1TWFFJrDVXA9ZwzfHbs/exec
+`;
+
 export default function App() {
   const [book, setBook] = useState<Book | null>(null);
 
@@ -56,56 +61,57 @@ export default function App() {
     localStorage.setItem('prepress-calibration-scale', newScale.toString());
   };
 
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzS0j_eBEeo9PEqs-041xuS1tbvhjOSiru9ahQmnxSdmRx94qkCZO48X_3JZYHbaVoU/exec';
   const { loading: gasLoading, error: gasError, load, syncAll } = useEbookSheet(GAS_URL);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   // 앱 시작 시 Google Sheets에서 자동 로드
   useEffect(() => {
     (async () => {
-      try {
-        const result = await load();
-        console.log('📋 load() 반환값:', result);
-        
-        // result 구조 확인
-        if (!result) {
-          throw new Error('load() 함수가 null을 반환했습니다.');
-        }
-        
-        // pages 배열 확인
-        const pages = result.pages || [];
-        console.log(`📊 pages 갯수: ${pages.length}`);
-        
-        if (pages && pages.length > 0) {
-          console.log(`✅ 로드 성공: ${pages.length}개 페이지`);
-          // Set book with title, author, theme, and pages
-          setBook({
-            id: 'loaded-book',
-            title: result.title || '제목 없음',
-            author: result.author || '',
-            theme: result.theme || 'classic',
-            pages: pages,
-          });
-          
-          // Set settings with print/format configuration
-          setSettings({
-            paperSizeId: result.paperSize || 'a5',
-            margins: result.margins || { top: 21, bottom: 21, inner: 21, outer: 15 },
-            fontFamily: result.fontFamily || 'Noto Serif KR',
-            fontSize: result.fontSize || 10,
-            lineHeight: result.lineHeight || 1.65,
-            showCropMarks: result.showCropMarks ?? true,
-            showPageNumbers: result.showPageNumbers ?? true,
-            showRunningHead: result.showRunningHead ?? true,
-            bleed: result.bleed || 3,
-          });
-        } else {
-          throw new Error(`📭 pages 배열이 비어있습니다 (길이: ${pages?.length || 0})`);
-        }
-      } catch (err) {
-        const errorMsg = err instanceof Error ? err.message : String(err);
-        console.error('❌ GAS 로드 실패:', errorMsg);
+      const result = await load();
+      console.log('📋 load() 반환값:', result);
+      
+      // result 구조 확인
+      if (!result) {
+        console.error('❌ load() 함수가 null을 반환했습니다.');
+        setIsInitialLoading(false);
+        return;
       }
+      
+      // pages 배열 확인
+      const pages = result.pages || [];
+      console.log(`📊 pages 갯수: ${pages.length}`);
+      if (pages.length > 0) {
+        console.log('📄 첫 번째 페이지 구조:', JSON.stringify(pages[0], null, 2));
+      }
+      
+      if (pages && pages.length > 0) {
+        console.log(`✅ 로드 성공: ${pages.length}개 페이지`);
+        // Set book with title, author, theme, and pages
+        setBook({
+          id: 'loaded-book',
+          title: result.title || '제목 없음',
+          author: result.author || '',
+          theme: result.theme || 'classic',
+          pages: pages,
+        });
+        
+        // Set settings with print/format configuration
+        setSettings({
+          paperSizeId: result.paperSize || 'a5',
+          margins: result.margins || { top: 21, bottom: 21, inner: 21, outer: 15 },
+          fontFamily: result.fontFamily || 'Noto Serif KR',
+          fontSize: result.fontSize || 10,
+          lineHeight: result.lineHeight || 1.65,
+          showCropMarks: result.showCropMarks ?? true,
+          showPageNumbers: result.showPageNumbers ?? true,
+          showRunningHead: result.showRunningHead ?? true,
+          bleed: result.bleed || 3,
+          pageTypeVisibility: result.pageTypeVisibility,
+        });
+      } else {
+        console.error(`❌ pages 배열이 비어있습니다 (길이: ${pages?.length || 0})`);
+      }
+      
       setIsInitialLoading(false);
     })();
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -242,6 +248,7 @@ export default function App() {
       showPageNumbers: settings.showPageNumbers,
       showRunningHead: settings.showRunningHead,
       bleed: settings.bleed,
+      pageTypeVisibility: settings.pageTypeVisibility,
       pages: book.pages,
     };
     
@@ -276,6 +283,7 @@ export default function App() {
           showPageNumbers: result.showPageNumbers ?? true,
           showRunningHead: result.showRunningHead ?? true,
           bleed: result.bleed || 3,
+          pageTypeVisibility: result.pageTypeVisibility,
         });
         
         setSelectedPageIndex(0);
@@ -286,6 +294,47 @@ export default function App() {
     } catch (err) {
       console.error('Failed to load from sheets:', err);
     }
+  };
+
+  const handleDownloadProject = () => {
+    if (!book) {
+      console.error('❌ 다운로드할 책 데이터가 없습니다');
+      return;
+    }
+
+    // Create project data
+    const projectData = {
+      title: book.title,
+      author: book.author,
+      theme: book.theme,
+      paperSize: settings.paperSizeId,
+      margins: settings.margins,
+      fontFamily: settings.fontFamily,
+      fontSize: settings.fontSize,
+      lineHeight: settings.lineHeight,
+      showCropMarks: settings.showCropMarks,
+      showPageNumbers: settings.showPageNumbers,
+      showRunningHead: settings.showRunningHead,
+      bleed: settings.bleed,
+      pageTypeVisibility: settings.pageTypeVisibility,
+      pages: book.pages,
+    };
+
+    // Convert to JSON string
+    const jsonString = JSON.stringify(projectData, null, 2);
+
+    // Create blob and download
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${book.title || 'project'}-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    console.log('✅ 프로젝트 다운로드 완료:', link.download);
   };
 
   const spreadLabel = viewMode === 'all'
@@ -322,7 +371,7 @@ export default function App() {
       )}
 
       {/* ── ERROR/NO DATA STATE ── */}
-      {!isInitialLoading && (!book || gasError) && (
+      {!isInitialLoading && !book && (
         <div className="flex-1 flex flex-col items-center justify-center gap-5" style={{ backgroundColor: '#2C261F', color: '#FAF6EC' }}>
           <div className="flex flex-col items-center gap-3 max-w-md text-center">
             <span className="text-2xl font-serif font-bold">⚠️ 데이터를 불러올 수 없습니다</span>
@@ -346,8 +395,35 @@ export default function App() {
         </div>
       )}
 
-      {/* ── MAIN 3-COLUMN LAYOUT ── */}
-      {!isInitialLoading && book && !gasError && (
+      {/* ── MAIN 3-COLUMN LAYOUT (+ error banner if needed) ── */}
+      {!isInitialLoading && book && (
+      <div className="flex-1 flex flex-col overflow-hidden">
+        {/* Error Banner (if GAS load failed but showing default data) */}
+        {gasError && (
+          <div
+            className="shrink-0 px-4 py-2 text-sm flex items-center justify-between"
+            style={{ backgroundColor: '#FDF3E6', borderBottom: '1px solid #E8D4B8', color: '#8B6914' }}
+          >
+            <span className="flex items-center gap-2">
+              <span>⚠️</span>
+              <span className="font-semibold">Google Sheets 데이터를 로드할 수 없어 기본값을 표시하고 있습니다</span>
+            </span>
+            <button
+              onClick={handleLoadFromSheets}
+              disabled={gasLoading}
+              className="px-2 py-1 rounded text-xs font-semibold transition-colors"
+              style={{
+                backgroundColor: gasLoading ? '#D4C4B0' : '#B5714A',
+                color: '#FDFAF6',
+                opacity: gasLoading ? 0.6 : 1,
+                cursor: gasLoading ? 'not-allowed' : 'pointer',
+              }}
+            >
+              {gasLoading ? '로딩 중...' : '다시 시도'}
+            </button>
+          </div>
+        )}
+        
       <main className="flex-1 flex overflow-hidden no-print">
 
         {/* ── LEFT: Page Navigation ── */}
@@ -482,6 +558,19 @@ export default function App() {
                 </span>
               )}
               <div className="shrink-0" style={{ width: 1, height: 16, backgroundColor: '#E8E0D4' }} />
+              <button
+                onClick={handleDownloadProject}
+                className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors rounded-lg"
+                style={{
+                  backgroundColor: '#E8D5C4',
+                  color: '#2A2420',
+                }}
+                title="프로젝트를 JSON 파일로 다운로드"
+              >
+                <Download size={12} />
+                다운로드
+              </button>
+              <div className="shrink-0" style={{ width: 1, height: 16, backgroundColor: '#E8E0D4' }} />
               <SunDim size={13} style={{ color: '#B4A99E' }} />
               {(Object.keys(PAPER_THEME_COLORS) as PaperTheme[]).map((theme) => (
                 <button
@@ -527,6 +616,7 @@ export default function App() {
           onPrint={handlePrint}
         />
       </main>
+      </div>
       )}
 
       {/* Printable DOM (hidden on screen) */}

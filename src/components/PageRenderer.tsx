@@ -61,13 +61,14 @@ export type PageRendererProps = {
   isRightPage: boolean;
   book: Book;
   settings: PrintSettings;
+  currentSectionTitle?: string; // For running heads (most recent section title)
 } & ModeProps;
 
 // ─────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────
 export default function PageRenderer(props: PageRendererProps) {
-  const { page, pageIndex, isRightPage, book, settings } = props;
+  const { page, pageIndex, isRightPage, book, settings, currentSectionTitle } = props;
 
   // ── Safety check: handle undefined page or book ──
   if (!page || !book) {
@@ -117,21 +118,21 @@ export default function PageRenderer(props: PageRendererProps) {
   // ── Get layout configuration ──
   const layoutConfig = getLayoutConfig(layoutType);
 
-  // ── Determine visibility: layout config AND settings ──
-  // Both must allow for the element to be shown
-  // If layout forbids it (false), settings cannot override it to true
-  // Settings can only restrict further (set to false)
-  const showPageNumbers = layoutConfig.showPageNumbers && settings.showPageNumbers;
-  const showRunningHead = layoutConfig.showRunningHead && settings.showRunningHead;
+  // ── Determine visibility based on layout type ──
+  // Use page-type-specific settings from metadata (pageTypeVisibility)
+  // Falls back to global settings if pageTypeVisibility not available
+  const typeVisibility = settings.pageTypeVisibility?.[layoutType];
+  const showPageNumbers = typeVisibility?.showPageNumbers ?? settings.showPageNumbers;
+  const showRunningHead = typeVisibility?.showRunningHead ?? settings.showRunningHead;
 
   // ── Paper theme ──
   const themeEntry = PAPER_THEME_MAP[paperTheme] || PAPER_THEME_MAP.white;
-  const themeClasses = isScreen
-    ? { bg: themeEntry.bg, text: themeEntry.text }
-    : { bg: '', text: '' };
+  // Synchronize theme classes between screen and print modes
+  const themeClasses = { bg: themeEntry.bg, text: themeEntry.text };
   const bgColorStyle = themeEntry.bgColor;
   const fgColorStyle = themeEntry.fgColor;
-  const printColorAdjust = isScreen ? {} : PRINT_COLOR_ADJUST_STYLE;
+  // FIXME: Review if print-specific color adjustments are needed
+  const printColorAdjust = {};
 
   const fontClass = FONT_CLASS_MAP[settings.fontFamily] || 'font-serif';
   const fontFamily = FONT_FAMILY_MAP[settings.fontFamily] || 'Inter, sans-serif';
@@ -190,13 +191,11 @@ export default function PageRenderer(props: PageRendererProps) {
     fontSize: uF(1),
     lineHeight: settings.lineHeight,
     overflow: 'hidden',
+    fontFamily: fontFamily,
   };
 
-  if (!isScreen) {
-    pageBaseStyle.fontFamily = fontFamily;
-    pageBaseStyle.fontSize = `${settings.fontSize}pt`;
-    Object.assign(pageBaseStyle, printColorAdjust);
-  }
+  // FIXME: Determine if print mode needs different font size (currently uses uF(1) for both)
+  // Object.assign(pageBaseStyle, printColorAdjust);
 
   // ── Determine page layout container structure ──
   // Use layout config to determine positioning
@@ -208,10 +207,9 @@ export default function PageRenderer(props: PageRendererProps) {
     ...(layoutConfig.containerLayout === 'center' && { textAlign: 'center' }),
   };
 
+  // Synchronize visual styling between screen and print modes for WYSIWYG
   const pageId = isScreen ? `preview-page-${pageNum}` : undefined;
-  const pageClass = isScreen
-    ? `${fontClass} relative shadow-xl overflow-hidden flex print-sheet`
-    : 'print-sheet';
+  const pageClass = `${fontClass} relative shadow-xl overflow-hidden flex print-sheet`;
 
   return (
     <div
@@ -225,28 +223,42 @@ export default function PageRenderer(props: PageRendererProps) {
         showCropMarks={settings.showCropMarks}
       />
 
-      {/* Content container - varies by layout type */}
-      <div style={containerLayoutStyle}>
-        {/* Running head - used by specific layouts */}
-        {showRunningHead && (layoutType === 'body' || layoutType === 'sequence' || layoutType === 'header-body') && (
-          <RunningHeadRenderer
-            show={true}
-            isScreen={isScreen}
-            unit={unit}
-            position={{ top: pTopPx, left: paddingLeft }}
-            contentWidth={contentWidthStr}
-            fontSize={isScreen ? '11px' : '7.5pt'}
-            fontPx={fontPx}
-            type={layoutType === 'body' ? 'book' : 'section'}
-            book={layoutType === 'body' ? book : undefined}
-            pageTitle={layoutType === 'body' ? undefined : safePage.title}
-            isRightPage={isRightPage}
-          />
-        )}
+      {/* Determine if running head can be shown for this layout type */}
+      {(() => {
+        // Layouts that fundamentally don't support running head
+        // or have their own title display (no page-level title mixing)
+        const noRunningHeadLayouts = ['cover', 'toc', 'chapter', 'header-body', 'blank'];
+        const canShowRunningHead = showRunningHead && !noRunningHeadLayouts.includes(layoutType);
+        
+        return (
+          <div style={{
+            ...containerLayoutStyle,
+            marginTop: canShowRunningHead
+              ? (isScreen ? '28px' : '5mm')
+              : 0,
+          }}>
+            {/* Running head - flexible for all layout types except fundamentally-excluded ones */}
+            {canShowRunningHead && (
+              <RunningHeadRenderer
+                show={true}
+                isScreen={isScreen}
+                unit={unit}
+                position={{ top: pTopPx, left: paddingLeft }}
+                contentWidth={contentWidthStr}
+                fontSize={isScreen ? '11px' : '7.5pt'}
+                fontPx={fontPx}
+                type={layoutType === 'body' ? 'book' : 'section'}
+                book={layoutType === 'body' ? book : undefined}
+                pageTitle={layoutType === 'body' ? undefined : currentSectionTitle}
+                isRightPage={isRightPage}
+              />
+            )}
 
-        {/* Layout-specific content */}
-        <LayoutContentComponent {...contentProps} />
-      </div>
+            {/* Layout-specific content */}
+            <LayoutContentComponent {...contentProps} />
+          </div>
+        );
+      })()}
 
       {/* Page number (absolute positioned) */}
       {showPageNumbers && (
