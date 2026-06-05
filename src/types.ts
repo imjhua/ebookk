@@ -141,6 +141,7 @@ export interface Book {
 /** 전체 프로젝트 데이터 (메타데이터 + 페이지 서식) */
 export interface BookProject {
   title: string;
+  subtitle?: string;
   author: string;
   theme: BookTheme;
   paperSize: string;

@@ -26,7 +26,7 @@ import BookSpreadReader, { PaperTheme } from './components/BookSpreadReader';
 
   
 const GAS_URL = `
-https://script.google.com/macros/s/AKfycbzl24SAZOrIiSqMuNbVE6vsQKmr4uxIg2tkrJ33Lm2GtT6Wo1TWFFJrDVXA9ZwzfHbs/exec
+https://script.google.com/macros/s/AKfycbydNffROzn6M8YcRJf0ziIO1LVp5OGsKTPLF4Oe_L252e4UxLRbdHcdC0mrxWvXr1wL/exec
 `;
 
 export default function App() {
@@ -99,6 +99,7 @@ export default function App() {
         setBook({
           id: 'loaded-book',
           title: result.title || '제목 없음',
+          subtitle: result.subtitle || '',
           author: result.author || '',
           theme: result.theme || 'classic',
           pages: cleanPages,
@@ -183,12 +184,22 @@ export default function App() {
     setBook(updatedBook);
   };
 
-  const handleUpdatePageMeta = (pageId: string, updates: Partial<Pick<Page, 'title' | 'content'>>) => {
+  const handleUpdatePageMeta = (pageId: string, updates: Partial<Pick<Page, 'title' | 'content' | 'subtitle' | 'author'>>) => {
     if (!book) return;
     const updatedPages = book.pages.map((p) =>
       p.id === pageId ? { ...p, ...updates } : p
     );
-    handleUpdateBook({ ...book, pages: updatedPages });
+    
+    // Cover 업데이트 시 책의 메타데이터도 함께 업데이트
+    let updatedBook = { ...book, pages: updatedPages };
+    const coverPage = updatedPages.find(p => p.layoutType === 'cover');
+    if (coverPage) {
+      updatedBook.title = coverPage.title || updatedBook.title;
+      updatedBook.subtitle = coverPage.subtitle || updatedBook.subtitle;
+      updatedBook.author = coverPage.author || updatedBook.author;
+    }
+    
+    handleUpdateBook(updatedBook);
   };
 
   const handleUpdatePageTitle = (pageId: string, title: string) => {
@@ -206,8 +217,9 @@ export default function App() {
   // Insert page AFTER current selection
   const handleAddPage = (layoutType: PageLayoutType) => {
     if (!book) return;
-    const ts = Date.now();
-    const newPage: Page = { id: `p-${ts}`, layoutType, content: '', title: '' };
+    // Count pages of the same type to generate sequential id
+    const sameTypeCount = book.pages.filter(p => p.layoutType === layoutType).length;
+    const newPage: Page = { id: `${layoutType}-row-${sameTypeCount + 1}`, layoutType, content: '', title: '' };
     const insertIndex = selectedPageIndex + 1;
     const updatedPages = [
       ...book.pages.slice(0, insertIndex),
@@ -268,6 +280,7 @@ export default function App() {
     // Construct complete BookProject from current state
     const project: BookProject = {
       title: book.title,
+      subtitle: book.subtitle,
       author: book.author,
       theme: book.theme,
       paperSize: settings.paperSizeId, // Convert from paperSizeId to paperSize
@@ -298,6 +311,7 @@ export default function App() {
         setBook({
           id: 'loaded-book',
           title: result.title || '제목 없음',
+          subtitle: result.subtitle || '',
           author: result.author || '',
           theme: result.theme || 'classic',
           pages: result.pages,
@@ -342,6 +356,7 @@ export default function App() {
 
     const projectData = {
       title: book.title,
+      subtitle: book.subtitle,
       author: book.author,
       theme: book.theme,
       paperSize: settings.paperSizeId,
@@ -489,7 +504,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <span className="text-[10px] font-semibold" style={{ color: '#B4A99E' }}>📘 책:</span>
-              <span className="text-[11px] font-bold" style={{ color: '#2A2420' }}>{book.title}</span>
+              <span className="text-[11px] font-bold" style={{ color: '#2A2420' }}>{book.title} ({book.subtitle})</span>
               <span className="text-[10px]" style={{ color: '#7A6F66' }}>• 테마: {book.theme}</span>
             </div>
           </div>

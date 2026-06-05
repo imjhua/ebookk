@@ -62,6 +62,7 @@ export function useEbookSheet(gasWebAppUrl: string): UseEbookSheetReturn {
 
       return {
         title: result.metadata.title || '',
+        subtitle: result.metadata.subtitle || '',
         author: result.metadata.author || '',
         theme: result.metadata.theme || DEFAULTS.theme,
         paperSize: result.metadata.paperSize || DEFAULTS.paperSize,
@@ -253,6 +254,7 @@ export function useEbookSheet(gasWebAppUrl: string): UseEbookSheetReturn {
             data: {
               metadata: {
                 title: project.title,
+                subtitle: project.subtitle,
                 author: project.author,
                 theme: project.theme,
                 paperSize: project.paperSize,

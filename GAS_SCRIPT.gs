@@ -35,27 +35,28 @@ function doGet(e) {
     // 모든 시트를 한 번에 가져오기
     ss.getSheets().forEach(s => { sheets[s.getName()] = s; });
     
-    // Load Metadata (26 columns: 10 base + 16 page-type-specific)
+    // Load Metadata (27 columns: 11 base + 16 page-type-specific)
     const metadataSheet = sheets[SHEET_NAMES.metadata];
-    const metadataRow = metadataSheet.getRange(2, 1, 1, 26).getValues()[0];
+    const metadataRow = metadataSheet.getRange(2, 1, 1, 27).getValues()[0];
     const metadata = {
       title: metadataRow[0] || '',
-      author: metadataRow[1] || '',
-      theme: metadataRow[2] || 'classic',
-      paperSize: metadataRow[3] || 'a5',
-      margins: _parseMargins(metadataRow[4]) || { top: 21, bottom: 21, inner: 21, outer: 15 },
-      fontFamily: metadataRow[5] || 'Noto Serif KR',
-      fontSize: _parseNumber(metadataRow[6]) || 10,
-      lineHeight: _parseNumber(metadataRow[7]) || 1.65,
-      showCropMarks: _parseBoolean(metadataRow[8]) ?? true,
-      bleed: _parseNumber(metadataRow[9]) || 3,
+      subtitle: metadataRow[1] || '',
+      author: metadataRow[2] || '',
+      theme: metadataRow[3] || 'classic',
+      paperSize: metadataRow[4] || 'a5',
+      margins: _parseMargins(metadataRow[5]) || { top: 21, bottom: 21, inner: 21, outer: 15 },
+      fontFamily: metadataRow[6] || 'Noto Serif KR',
+      fontSize: _parseNumber(metadataRow[7]) || 10,
+      lineHeight: _parseNumber(metadataRow[8]) || 1.65,
+      showCropMarks: _parseBoolean(metadataRow[9]) ?? true,
+      bleed: _parseNumber(metadataRow[10]) || 3,
     };
 
-    // Page type-specific visibility settings (from metadata columns 10-25)
+    // Page type-specific visibility settings (from metadata columns 11-26)
     const pageTypeNames = ['cover', 'toc', 'chapter', 'body', 'quote', 'sequence', 'header-body', 'blank'];
     const pageTypeVisibility = {};
     pageTypeNames.forEach((pageType, idx) => {
-      const baseCol = 10 + (idx * 2);
+      const baseCol = 11 + (idx * 2);
       pageTypeVisibility[pageType] = {
         showPageNumbers: _parseBoolean(metadataRow[baseCol]) ?? true,
         showRunningHead: _parseBoolean(metadataRow[baseCol + 1]) ?? true,
@@ -94,11 +95,6 @@ function doGet(e) {
         if (!row[0] || row[0].toString().trim() === '') continue;
         
         const pageData = _rowToObject(pageType, row, i + 2);
-        
-        // Add page-type visibility settings from metadata
-        const typeSettings = pageTypeVisibility[pageType] || { showPageNumbers: true, showRunningHead: true };
-        pageData.showPageNumbers = typeSettings.showPageNumbers;
-        pageData.showRunningHead = typeSettings.showRunningHead;
         
         pages.push(pageData);
       }
@@ -147,10 +143,11 @@ function doPost(e) {
         ? data.metadata.margins 
         : JSON.stringify(data.metadata.margins);
       
-      // Build 26-column array
+      // Build 27-column array
       const pageTypeNames = ['cover', 'toc', 'chapter', 'body', 'quote', 'sequence', 'header-body', 'blank'];
       const metadataValues = [
         data.metadata.title || '',
+        data.metadata.subtitle || '',
         data.metadata.author || '',
         data.metadata.theme || 'classic',
         data.metadata.paperSize || 'a5',
@@ -162,7 +159,7 @@ function doPost(e) {
         data.metadata.bleed || 3,
       ];
       
-      // Add page-type-specific settings (columns 10-25)
+      // Add page-type-specific settings (columns 11-26)
       const pageTypeVisibility = data.metadata.pageTypeVisibility || {};
       pageTypeNames.forEach((pageType) => {
         const settings = pageTypeVisibility[pageType] || { showPageNumbers: true, showRunningHead: true };
@@ -170,7 +167,7 @@ function doPost(e) {
         metadataValues.push(settings.showRunningHead ? 'TRUE' : 'FALSE');
       });
       
-      metadataSheet.getRange(2, 1, 1, 26).setValues([metadataValues]);
+      metadataSheet.getRange(2, 1, 1, 27).setValues([metadataValues]);
       return ContentService.createTextOutput(JSON.stringify({
         status: 'success',
         message: 'Metadata updated'
@@ -216,17 +213,18 @@ function doPost(e) {
         }
       }
 
-      // Metadata 저장 (26 columns)
+      // Metadata 저장 (27 columns)
       if (data.metadata) {
         const metadataSheet = ss.getSheetByName(SHEET_NAMES.metadata);
         const marginStr = typeof data.metadata.margins === 'string' 
           ? data.metadata.margins 
           : JSON.stringify(data.metadata.margins);
         
-        // Build 26-column array
+        // Build 27-column array
         const pageTypeNames = ['cover', 'toc', 'chapter', 'body', 'quote', 'sequence', 'header-body', 'blank'];
         const metadataValues = [
           data.metadata.title || '',
+          data.metadata.subtitle || '',
           data.metadata.author || '',
           data.metadata.theme || 'classic',
           data.metadata.paperSize || 'a5',
@@ -238,7 +236,7 @@ function doPost(e) {
           data.metadata.bleed || 3,
         ];
         
-        // Add page-type-specific settings (columns 10-25)
+        // Add page-type-specific settings (columns 11-26)
         const pageTypeVisibility = data.metadata.pageTypeVisibility || {};
         pageTypeNames.forEach((pageType) => {
           const settings = pageTypeVisibility[pageType] || { showPageNumbers: true, showRunningHead: true };
@@ -246,7 +244,7 @@ function doPost(e) {
           metadataValues.push(settings.showRunningHead ? 'TRUE' : 'FALSE');
         });
         
-        metadataSheet.getRange(2, 1, 1, 26).setValues([metadataValues]);
+        metadataSheet.getRange(2, 1, 1, 27).setValues([metadataValues]);
       }
 
       return ContentService.createTextOutput(JSON.stringify({
@@ -278,6 +276,17 @@ function doPost(e) {
     if (action === 'update' && rowIndex && data) {
       const rowValues = _objectToRow(pageType, data);
       sheet.getRange(parseInt(rowIndex), 1, 1, rowValues.length).setValues([rowValues]);
+      
+      // Cover 업데이트 시 메타데이터도 동시 업데이트
+      if (pageType === 'cover') {
+        const metadataSheet = ss.getSheetByName(SHEET_NAMES.metadata);
+        const metadataRow = metadataSheet.getRange(2, 1, 1, 27).getValues()[0];
+        metadataRow[0] = data.title || metadataRow[0];     // title
+        metadataRow[1] = data.subtitle || metadataRow[1];   // subtitle
+        metadataRow[2] = data.author || metadataRow[2];     // author
+        metadataSheet.getRange(2, 1, 1, 27).setValues([metadataRow]);
+      }
+      
       return ContentService.createTextOutput(JSON.stringify({
         status: 'success',
         message: 'Page updated'
@@ -289,6 +298,16 @@ function doPost(e) {
     if (action === 'save' && data) {
       const rowValues = _objectToRow(pageType, data);
       sheet.appendRow(rowValues);
+      
+      // Cover 생성 시 메타데이터도 동시 업데이트
+      if (pageType === 'cover') {
+        const metadataSheet = ss.getSheetByName(SHEET_NAMES.metadata);
+        const metadataRow = metadataSheet.getRange(2, 1, 1, 27).getValues()[0];
+        metadataRow[0] = data.title || metadataRow[0];     // title
+        metadataRow[1] = data.subtitle || metadataRow[1];   // subtitle
+        metadataRow[2] = data.author || metadataRow[2];     // author
+        metadataSheet.getRange(2, 1, 1, 27).setValues([metadataRow]);
+      }
       
       // PageOrder 시트에도 새 페이지 추가 (3 columns only)
       const pageOrderSheet = ss.getSheetByName('PageOrder');
