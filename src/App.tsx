@@ -403,31 +403,31 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col font-sans" style={{ backgroundColor: '#FDFAF6', color: '#2A2420' }}>
+    <div className="h-screen flex flex-col font-sans" style={{ backgroundColor: '#FFFFFF', color: '#111111' }}>
 
       {/* ── INITIAL LOADING OVERLAY ── */}
       {isInitialLoading && (
         <div
           className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-5"
-          style={{ backgroundColor: '#2C261F' }}
+          style={{ backgroundColor: '#1F1F1F' }}
         >
           <div
             className="w-10 h-10 rounded-full border-4 border-t-transparent animate-spin"
-            style={{ borderColor: '#FAF6EC', borderTopColor: 'transparent' }}
+            style={{ borderColor: '#D4B896', borderTopColor: 'transparent' }}
           />
           <div className="flex flex-col items-center gap-1.5">
-            <span className="text-[15px] font-serif font-semibold" style={{ color: '#FAF6EC' }}>Google Sheets에서 불러오는 중</span>
-            <span className="text-[11px] font-mono" style={{ color: 'rgba(250,246,236,0.4)' }}>잠시만 기다려 주세요…</span>
+            <span className="text-[15px] font-sans font-semibold" style={{ color: '#FFFFFF' }}>Google Sheets에서 불러오는 중</span>
+            <span className="text-[11px] font-sans font-semibold" style={{ color: 'rgba(255,255,255,0.6)' }}>잠시만 기다려 주세요…</span>
           </div>
         </div>
       )}
 
       {/* ── ERROR/NO DATA STATE ── */}
       {!isInitialLoading && !book && (
-        <div className="flex-1 flex flex-col items-center justify-center gap-5" style={{ backgroundColor: '#2C261F', color: '#FAF6EC' }}>
+        <div className="flex-1 flex flex-col items-center justify-center gap-5" style={{ backgroundColor: '#F5F5F5', color: '#111111' }}>
           <div className="flex flex-col items-center gap-3 max-w-md text-center">
             <span className="text-2xl font-serif font-bold">⚠️ 데이터를 불러올 수 없습니다</span>
-            <span className="text-sm font-mono" style={{ color: 'rgba(250,246,236,0.7)', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+            <span className="text-sm font-mono" style={{ color: '#666666', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
               {gasError || ''}
             </span>
             <button
@@ -435,8 +435,8 @@ export default function App() {
               disabled={gasLoading}
               className="mt-4 px-4 py-2 rounded-lg font-semibold text-sm transition-colors"
               style={{
-                backgroundColor: gasLoading ? '#5A5A5A' : '#B5714A',
-                color: '#FDFAF6',
+                backgroundColor: gasLoading ? '#CCCCCC' : '#D4B896',
+                color: '#FFFFFF',
                 opacity: gasLoading ? 0.6 : 1,
                 cursor: gasLoading ? 'not-allowed' : 'pointer',
               }}
@@ -454,7 +454,7 @@ export default function App() {
         {gasError && (
           <div
             className="shrink-0 px-4 py-2 text-sm flex items-center justify-between"
-            style={{ backgroundColor: '#FDF3E6', borderBottom: '1px solid #E8D4B8', color: '#8B6914' }}
+            style={{ backgroundColor: '#FFF5E6', borderBottom: '1px solid #E5D7C3', color: '#B8860B' }}
           >
             <span className="flex items-center gap-2">
               <span>⚠️</span>
@@ -465,8 +465,8 @@ export default function App() {
               disabled={gasLoading}
               className="px-2 py-1 rounded text-xs font-semibold transition-colors"
               style={{
-                backgroundColor: gasLoading ? '#D4C4B0' : '#B5714A',
-                color: '#FDFAF6',
+                backgroundColor: gasLoading ? '#E5D7C3' : '#D4B896',
+                color: '#FFFFFF',
                 opacity: gasLoading ? 0.6 : 1,
                 cursor: gasLoading ? 'not-allowed' : 'pointer',
               }}
@@ -495,34 +495,34 @@ export default function App() {
         />
 
         {/* ── CENTER: Book View ── */}
-        <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#F5F0E8' }}>
+        <div className="flex-1 flex flex-col overflow-hidden" style={{ backgroundColor: '#FFFFFF' }}>
 
           {/* Book Metadata Header */}
           <div
             className="shrink-0 px-4 py-2 flex items-center justify-between"
-            style={{ backgroundColor: '#F5F0E8', borderBottom: '1px solid #E8E0D4' }}
+            style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E5E5E5' }}
           >
             <div className="flex items-center gap-3">
-              <span className="text-[10px] font-semibold" style={{ color: '#B4A99E' }}>📘 책:</span>
-              <span className="text-[11px] font-bold" style={{ color: '#2A2420' }}>{book.title} ({book.subtitle})</span>
-              <span className="text-[10px]" style={{ color: '#7A6F66' }}>• 테마: {book.theme}</span>
+              <span className="text-[10px] font-semibold" style={{ color: '#999999' }}>📘 책:</span>
+              <span className="text-[11px] font-bold" style={{ color: '#111111' }}>{book.title} ({book.subtitle})</span>
+              <span className="text-[10px]" style={{ color: '#666666' }}>• 테마: {book.theme}</span>
             </div>
           </div>
 
           {/* Center Toolbar */}
           <div
             className="shrink-0 flex items-center justify-between px-4 py-2 gap-3"
-            style={{ backgroundColor: '#FDFAF6', borderBottom: '1px solid #E8E0D4' }}
+            style={{ backgroundColor: '#FFFFFF', borderBottom: '1px solid #E5E5E5' }}
           >
             {/* Left: View mode + navigation */}
             <div className="flex items-center gap-2">
               {/* View mode */}
-              <div className="flex rounded-lg overflow-hidden shrink-0" style={{ border: '1px solid #E8E0D4' }}>
+              <div className="flex rounded-lg overflow-hidden shrink-0" style={{ border: '1px solid #E5E5E5' }}>
                 <button
                   onClick={() => handleViewModeChange('single')}
                   title="1쪽 보기"
                   className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors"
-                  style={{ backgroundColor: viewMode === 'single' ? '#2A2420' : '#FDFAF6', color: viewMode === 'single' ? '#fff' : '#7A6F66' }}
+                  style={{ backgroundColor: viewMode === 'single' ? '#111111' : '#FFFFFF', color: viewMode === 'single' ? '#fff' : '#666666' }}
                 >
                   <BookOpen size={12} /> 1쪽
                 </button>
@@ -530,7 +530,7 @@ export default function App() {
                   onClick={() => handleViewModeChange('double')}
                   title="2쪽 보기"
                   className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors"
-                  style={{ backgroundColor: viewMode === 'double' ? '#2A2420' : '#FDFAF6', color: viewMode === 'double' ? '#fff' : '#7A6F66' }}
+                  style={{ backgroundColor: viewMode === 'double' ? '#111111' : '#FFFFFF', color: viewMode === 'double' ? '#fff' : '#666666' }}
                 >
                   <BookMarked size={12} /> 2쪽
                 </button>
@@ -538,7 +538,7 @@ export default function App() {
                   onClick={() => handleViewModeChange('all')}
                   title="전체 보기"
                   className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors"
-                  style={{ backgroundColor: viewMode === 'all' ? '#2A2420' : '#FDFAF6', color: viewMode === 'all' ? '#fff' : '#7A6F66' }}
+                  style={{ backgroundColor: viewMode === 'all' ? '#111111' : '#FFFFFF', color: viewMode === 'all' ? '#fff' : '#666666' }}
                 >
                   <LayoutGrid size={12} /> 전체
                 </button>
@@ -551,7 +551,7 @@ export default function App() {
                     onClick={handlePrevSpread}
                     disabled={isAtStart}
                     className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    style={{ backgroundColor: '#FDFAF6', border: '1px solid #E8E0D4', color: '#2A2420' }}
+                    style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E5E5', color: '#111111' }}
                   >
                     <ChevronLeft size={13} /> 이전
                   </button>
@@ -559,7 +559,7 @@ export default function App() {
               )}
               <span
                 className="text-[11px] font-semibold font-mono px-2.5 py-1.5 rounded-lg select-none shrink-0"
-                style={{ backgroundColor: '#F5F0E8', color: '#7A6F66', border: '1px solid #E8E0D4' }}
+                style={{ backgroundColor: '#F5F5F5', color: '#666666', border: '1px solid #E5E5E5' }}
               >
                 {spreadLabel}
               </span>
@@ -568,7 +568,7 @@ export default function App() {
                   onClick={handleNextSpread}
                   disabled={isAtEnd}
                   className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: '#FDFAF6', border: '1px solid #E8E0D4', color: '#2A2420' }}
+                  style={{ backgroundColor: '#FFFFFF', border: '1px solid #E5E5E5', color: '#111111' }}
                 >
                   다음 <ChevronRight size={13} />
                 </button>
@@ -578,24 +578,24 @@ export default function App() {
             {/* Right: GAS + Paper theme */}
             <div className="flex items-center gap-2 shrink-0">
               {/* GAS Save / Load */}
-              <div className="flex items-center gap-0 rounded-lg overflow-hidden" style={{ border: '1px solid #E8E0D4' }}>
+              <div className="flex items-center gap-0 rounded-lg overflow-hidden" style={{ border: '1px solid #E5E5E5' }}>
                 <button
                   onClick={handleLoadFromSheets}
                   disabled={gasLoading}
                   className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                  style={{ backgroundColor: '#FDFAF6', color: '#7A6F66' }}
+                  style={{ backgroundColor: '#FFFFFF', color: '#666666' }}
                   title="Google Sheets에서 불러오기"
                 >
                   <Download size={12} />
                   {gasLoading ? '로딩중…' : '불러오기'}
                 </button>
-                <div style={{ width: 1, height: 16, backgroundColor: '#E8E0D4', flexShrink: 0 }} />
+                <div style={{ width: 1, height: 16, backgroundColor: '#E5E5E5', flexShrink: 0 }} />
                 <button
                   onClick={handleSaveToSheets}
                   disabled={gasLoading}
                   className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                   style={{
-                    backgroundColor: gasLoading ? '#7A4F30' : '#B5714A',
+                    backgroundColor: gasLoading ? '#CCCCCC' : '#D4B896',
                     color: '#fff',
                   }}
                   title="Google Sheets에 저장"
@@ -607,27 +607,27 @@ export default function App() {
               {gasError && (
                 <span
                   className="text-[10px] font-medium max-w-[100px] truncate shrink-0"
-                  style={{ color: '#C0392B' }}
+                  style={{ color: '#DC143C' }}
                   title={gasError}
                 >
                   {gasError}
                 </span>
               )}
-              <div className="shrink-0" style={{ width: 1, height: 16, backgroundColor: '#E8E0D4' }} />
+              <div className="shrink-0" style={{ width: 1, height: 16, backgroundColor: '#E5E5E5' }} />
               <button
                 onClick={handleDownloadProject}
                 className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-semibold cursor-pointer transition-colors rounded-lg"
                 style={{
-                  backgroundColor: '#E8D5C4',
-                  color: '#2A2420',
+                  backgroundColor: '#F0F0F0',
+                  color: '#111111',
                 }}
                 title="프로젝트를 JSON 파일로 다운로드"
               >
                 <Download size={12} />
                 다운로드
               </button>
-              <div className="shrink-0" style={{ width: 1, height: 16, backgroundColor: '#E8E0D4' }} />
-              <SunDim size={13} style={{ color: '#B4A99E' }} />
+              <div className="shrink-0" style={{ width: 1, height: 16, backgroundColor: '#E5E5E5' }} />
+              <SunDim size={13} style={{ color: '#999999' }} />
               {(Object.keys(PAPER_THEME_COLORS) as PaperTheme[]).map((theme) => (
                 <button
                   key={theme}
@@ -635,8 +635,8 @@ export default function App() {
                   className="w-5 h-5 rounded-full border-2 cursor-pointer transition-all hover:scale-110"
                   style={{
                     backgroundColor: PAPER_THEME_COLORS[theme],
-                    borderColor: paperTheme === theme ? '#B5714A' : '#D0C8BE',
-                    outline: paperTheme === theme ? '2px solid #B5714A' : 'none',
+                    borderColor: paperTheme === theme ? '#D4B896' : '#D0D0D0',
+                    outline: paperTheme === theme ? '2px solid #D4B896' : 'none',
                     outlineOffset: '1px',
                   }}
                   title={theme}
