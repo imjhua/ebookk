@@ -68,6 +68,7 @@ src/
     PrintSurface.tsx
   hooks/
     useEbookSheet.ts
+    useUndoRedo.ts
   App.tsx
   defaultSettings.ts
   index.css
@@ -75,9 +76,9 @@ src/
   types.ts
 .env.example
 .gitignore
-GAS_AUTO_SETUP.gs
 GAS_INSTRUCTIONS.md
 GAS_SCRIPT.gs
+GAS_SETUP.gs
 index.html
 metadata.json
 package.json
@@ -88,70 +89,6 @@ vite.config.ts
 
 <files>
 This section contains the contents of the repository's files.
-
-<file path="src/defaultSettings.ts">
-import { PageUnion, BookProject } from './types';
-
-/**
- * 기본 설정값 (하드코딩)
- * Defaults 시트 없이 코드에서 직접 관리
- */
-
-export const DEFAULT_SETTINGS = {
-  theme: 'classic',
-  paperSize: 'a5',
-  margins: {
-    top: 21,
-    bottom: 21,
-    inner: 21,
-    outer: 15,
-  },
-  fontFamily: 'Noto Serif KR',
-  fontSize: 10,
-  lineHeight: 1.65,
-  showCropMarks: true,
-  showPageNumbers: true,
-  showRunningHead: true,
-  bleed: 3,
-} as const;
-
-/**
- * GAS 로드 실패 시 표시할 기본 페이지들
- */
-export const DEFAULT_PAGES: PageUnion[] = [
-  {
-    id: 'default-cover',
-    layoutType: 'cover',
-    title: '(디폴트) 새로운 책',
-    author: '(디폴트) Google Sheets 데이터 없음',
-  } as const,
-  {
-    id: 'default-body',
-    layoutType: 'body',
-    title: '(디폴트) 본문',
-    content: '(디폴트) 본문 내용이 여기에 표시됩니다.\n\nGoogle Sheets에서 데이터를 불러올 수 없어 기본값으로 표시됩니다.',
-  } as const,
-];
-
-/**
- * GAS 로드 실패 시 표시할 기본 프로젝트
- */
-export const createDefaultBookProject = (): BookProject => ({
-  title: '(디폴트) 새로운 책',
-  author: '(디폴트) 저자 미정',
-  theme: DEFAULT_SETTINGS.theme as any,
-  paperSize: DEFAULT_SETTINGS.paperSize,
-  margins: DEFAULT_SETTINGS.margins,
-  fontFamily: DEFAULT_SETTINGS.fontFamily as any,
-  fontSize: DEFAULT_SETTINGS.fontSize,
-  lineHeight: DEFAULT_SETTINGS.lineHeight,
-  showCropMarks: DEFAULT_SETTINGS.showCropMarks,
-  showPageNumbers: DEFAULT_SETTINGS.showPageNumbers,
-  showRunningHead: DEFAULT_SETTINGS.showRunningHead,
-  bleed: DEFAULT_SETTINGS.bleed,
-  pages: DEFAULT_PAGES as any,
-});
-</file>
 
 <file path="src/components/layout-helpers/CropMarksRenderer.tsx">
 /**
@@ -392,54 +329,6 @@ export default function BlankLayoutContent({
 }
 </file>
 
-<file path="src/components/layouts/BodyLayoutContent.tsx">
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React from 'react';
-import { LayoutContentProps } from '../layout-helpers';
-
-export default function BodyLayoutContent({
-  page,
-  uF,
-  settings,
-}: LayoutContentProps) {
-  return (
-    <div style={{ height: '100%', width: '100%', overflow: 'hidden', position: 'relative' }}>
-      <div
-        style={{
-          fontSize: uF(1),
-          lineHeight: settings.lineHeight,
-          overflow: 'hidden',
-          height: '100%',
-        }}
-      >
-        {page.content.length > 0 && (
-          <span
-            style={{
-              float: 'left',
-              fontSize: uF(3.4),
-              lineHeight: 0.82,
-              marginRight: uF(0.08),
-              marginTop: uF(0.06),
-              fontWeight: 700,
-              fontFamily: 'inherit',
-            }}
-          >
-            {page.content[0]}
-          </span>
-        )}
-        <span className="whitespace-pre-wrap break-words">
-          {page.content.length > 0 ? page.content.slice(1) : ''}
-        </span>
-      </div>
-    </div>
-  );
-}
-</file>
-
 <file path="src/components/layouts/ChapterLayoutContent.tsx">
 /**
  * @license
@@ -600,54 +489,6 @@ export default function CoverLayoutContent({
 }
 </file>
 
-<file path="src/components/layouts/HeaderBodyLayoutContent.tsx">
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React from 'react';
-import { LayoutContentProps } from '../layout-helpers';
-
-export default function HeaderBodyLayoutContent({
-  page,
-  uF,
-  settings,
-}: LayoutContentProps) {
-  return (
-    <div style={{ height: '100%', width: '100%', overflow: 'hidden', position: 'relative' }}>
-      <div
-        style={{
-          fontSize: uF(1),
-          lineHeight: settings.lineHeight,
-          overflow: 'hidden',
-          height: '100%',
-        }}
-      >
-        {page.content.length > 0 && (
-          <span
-            style={{
-              float: 'left',
-              fontSize: uF(3.4),
-              lineHeight: 0.82,
-              marginRight: uF(0.08),
-              marginTop: uF(0.06),
-              fontWeight: 700,
-              fontFamily: 'inherit',
-            }}
-          >
-            {page.content[0]}
-          </span>
-        )}
-        <span className="whitespace-pre-wrap break-words">
-          {page.content.length > 0 ? page.content.slice(1) : ''}
-        </span>
-      </div>
-    </div>
-  );
-}
-</file>
-
 <file path="src/components/layouts/index.ts">
 /**
  * @license
@@ -735,59 +576,6 @@ export default function QuoteLayoutContent({
       >
         {page.content}
       </div>
-    </div>
-  );
-}
-</file>
-
-<file path="src/components/layouts/SequenceLayoutContent.tsx">
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React from 'react';
-import { LayoutContentProps } from '../layout-helpers';
-
-export default function SequenceLayoutContent({
-  page,
-  uF,
-}: LayoutContentProps) {
-  const seqLines = page.content.split('\n').filter(Boolean);
-  const seqEntries = seqLines.map((line) => {
-    const idx = line.lastIndexOf(' ');
-    return idx === -1 ? { left: line, right: '' } : { left: line.slice(0, idx), right: line.slice(idx + 1) };
-  });
-
-  return (
-    <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-      {seqEntries.map((entry, i) => (
-        <div
-          key={i}
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'baseline',
-            paddingTop: uF(0.25),
-            paddingBottom: uF(0.25),
-            borderBottom: `0.2mm solid rgba(0,0,0,0.07)`,
-          }}
-        >
-          <span>{entry.left}</span>
-          <span
-            style={{
-              fontFamily: 'monospace',
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              fontSize: uF(0.78),
-              opacity: 0.5,
-              marginLeft: uF(1),
-            }}
-          >
-            {entry.right}
-          </span>
-        </div>
-      ))}
     </div>
   );
 }
@@ -941,6 +729,139 @@ export default function TocLayoutContent({
 }
 </file>
 
+<file path="src/hooks/useUndoRedo.ts">
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { useRef, useState, useCallback } from 'react';
+import { Book } from '../types';
+
+interface UndoRedoState {
+  past: Book[];
+  present: Book;
+  future: Book[];
+}
+
+interface UseUndoRedoReturn {
+  undo: () => Book | null;
+  redo: () => Book | null;
+  pushState: (newState: Book) => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  clear: () => void;
+}
+
+const MAX_HISTORY_SIZE = 10;
+
+/**
+ * 페이지 편집 작업(삭제, 드래그앤드롭)의 히스토리 관리 훅
+ * useRef를 통해 history를 직접 관리하므로 불필요한 재초기화가 없습니다.
+ * 
+ * @param initialBook - 초기 Book 상태
+ * @returns UndoRedo 인터페이스
+ */
+export function useUndoRedo(initialBook: Book | null): UseUndoRedoReturn {
+  // useRef를 사용해서 history를 직접 관리 (컴포넌트 리렌더링 시 유지)
+  const historyRef = useRef<UndoRedoState>({
+    past: [],
+    present: initialBook || {
+      id: '',
+      title: '',
+      author: '',
+      theme: 'classic',
+      pages: [],
+    },
+    future: [],
+  });
+
+  // 상태 업데이트 감지용 (canUndo, canRedo 반영)
+  const [, setHistoryVersion] = useState(0);
+
+  const canUndo = historyRef.current.past.length > 0;
+  const canRedo = historyRef.current.future.length > 0;
+
+  const pushState = useCallback((newState: Book) => {
+    const prev = historyRef.current;
+    const newPast = [...prev.past, prev.present];
+    
+    // 최대 히스토리 크기 유지
+    if (newPast.length > MAX_HISTORY_SIZE) {
+      newPast.shift();
+    }
+
+    historyRef.current = {
+      past: newPast,
+      present: newState,
+      future: [], // 새로운 작업 시 Redo 스택 초기화
+    };
+    
+    // UI 업데이트 강제
+    setHistoryVersion((v) => v + 1);
+  }, []);
+
+  const undo = useCallback(() => {
+    const prev = historyRef.current;
+    if (prev.past.length === 0) return null;
+
+    const newPast = [...prev.past];
+    const newPresent = newPast.pop()!;
+    const newFuture = [prev.present, ...prev.future];
+
+    historyRef.current = {
+      past: newPast,
+      present: newPresent,
+      future: newFuture,
+    };
+
+    // UI 업데이트 강제
+    setHistoryVersion((v) => v + 1);
+    
+    return newPresent;
+  }, []);
+
+  const redo = useCallback(() => {
+    const prev = historyRef.current;
+    if (prev.future.length === 0) return null;
+
+    const newFuture = [...prev.future];
+    const newPresent = newFuture.shift()!;
+    const newPast = [...prev.past, prev.present];
+
+    historyRef.current = {
+      past: newPast,
+      present: newPresent,
+      future: newFuture,
+    };
+
+    // UI 업데이트 강제
+    setHistoryVersion((v) => v + 1);
+    
+    return newPresent;
+  }, []);
+
+  const clear = useCallback(() => {
+    historyRef.current = {
+      past: [],
+      present: historyRef.current.present,
+      future: [],
+    };
+    
+    setHistoryVersion((v) => v + 1);
+  }, []);
+
+  return {
+    undo,
+    redo,
+    pushState,
+    canUndo,
+    canRedo,
+    clear,
+  };
+}
+</file>
+
 <file path="src/main.tsx">
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
@@ -963,6 +884,868 @@ coverage/
 *.log
 .env*
 !.env.example
+</file>
+
+<file path="GAS_SETUP.gs">
+/**
+ * 🚀 e-book-artisan 전체 초기화 (원클릭!)
+ * 기존 데이터를 모두 삭제하고 깨끗한 상태로 초기화합니다
+ */
+function autoSetupEbookSheets() {
+  Logger.log('🚀 e-book-artisan 전체 초기화 시작...');
+  
+  const SHEET_ID = '1gwvXdXGV8IEjQ5q82Fo9gEusW8k9ZVXVzQ6R_4iex24';
+  const ss = SpreadsheetApp.openById(SHEET_ID);
+
+  // ===== 1. 시트 구조 정의 =====
+  const sheetConfig = {
+    'Metadata':    ['title', 'subtitle', 'author', 'theme', 'paperSize', 'margins', 'fontFamily', 'fontSize', 'lineHeight', 'showCropMarks', 'bleed', 'cover_showPageNumbers', 'cover_showRunningHead', 'toc_showPageNumbers', 'toc_showRunningHead', 'chapter_showPageNumbers', 'chapter_showRunningHead', 'body_showPageNumbers', 'body_showRunningHead', 'quote_showPageNumbers', 'quote_showRunningHead', 'sequence_showPageNumbers', 'sequence_showRunningHead', 'header-body_showPageNumbers', 'header-body_showRunningHead', 'blank_showPageNumbers', 'blank_showRunningHead'],
+    'PageOrder':   ['id', 'pageType', 'orderIndex'],
+    'Cover':       ['id', 'title', 'subtitle', 'author'],
+    'TOC':         ['id', 'title', 'tocEntries_json'],
+    'Chapter':     ['id', 'title', 'subtitle', 'content'],
+    'Sequence':    ['id', 'title', 'content', 'items_json'],
+    'Header-Body': ['id', 'title', 'content'],
+    'Body':        ['id', 'content'],
+    'Blank':       ['id', 'content'],
+    'Quote':       ['id', 'title', 'content']
+  };
+
+  // ===== 2. 모든 시트 초기화 (생성 + 기존 데이터 삭제) =====
+  Object.entries(sheetConfig).forEach(([sheetName, headers]) => {
+    let sheet = ss.getSheetByName(sheetName);
+    if (!sheet) {
+      sheet = ss.insertSheet(sheetName);
+    } else if (sheet.getLastRow() > 1) {
+      sheet.deleteRows(2, sheet.getLastRow() - 1);
+    }
+    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+  });
+  Logger.log('✅ 10개 시트 초기화 완료');
+
+  // ===== 3. 샘플 데이터 (일괄 작성) =====
+  const tocEntries = [
+    { chapter: 'Chapter 01', title: '기본 호흡법', pageNumber: '5' },
+    { chapter: 'Chapter 02', title: '워밍업', pageNumber: '12' },
+    { chapter: 'Chapter 03', title: '플로우 시작', pageNumber: '18' }
+  ];
+  const sequenceItems = ['Mountain Pose', 'Forward Fold', 'Low Lunge', 'High Plank', 'Upward Dog', 'Downward Dog', 'Forward Fold', 'Mountain Pose'];
+  const metadataMargins = JSON.stringify({top: 21, bottom: 21, inner: 21, outer: 15});
+
+  const sampleData = {
+    'Metadata':    [[
+      '빈야사 플로우',                                    // title (0)
+      'Vinyasa Flow',                                   // subtitle (1)
+      '요기니 김지혜',                                   // author (2)
+      'classic',                                        // theme (3)
+      'a5',                                             // paperSize (4)
+      metadataMargins,                                  // margins (5)
+      'Noto Serif KR',                                  // fontFamily (6)
+      10,                                               // fontSize (7)
+      1.65,                                             // lineHeight (8)
+      'TRUE',                                           // showCropMarks (9)
+      3,                                                // bleed (10)
+      'FALSE', 'FALSE',                                 // cover_showPageNumbers, cover_showRunningHead (11-12)
+      'TRUE', 'FALSE',                                  // toc_showPageNumbers, toc_showRunningHead (13-14)
+      'FALSE', 'FALSE',                                 // chapter_showPageNumbers, chapter_showRunningHead (15-16)
+      'TRUE', 'TRUE',                                   // body_showPageNumbers, body_showRunningHead (17-18)
+      'TRUE', 'TRUE',                                   // quote_showPageNumbers, quote_showRunningHead (19-20)
+      'TRUE', 'TRUE',                                   // sequence_showPageNumbers, sequence_showRunningHead (21-22)
+      'TRUE', 'TRUE',                                   // header-body_showPageNumbers, header-body_showRunningHead (23-24)
+      'FALSE', 'FALSE'                                  // blank_showPageNumbers, blank_showRunningHead (25-26)
+    ]],
+    'Cover':       [['cover-row-2', '빈야사 플로우', 'Vinyasa Flow', '요기니 김지혜']],
+    'TOC':         [['toc-row-2', '목차', JSON.stringify(tocEntries)]],
+    'Chapter':     [
+      ['chapter-row-2', 'CHAPTER 01', '기본 호흡법', '이 챕터에서는 요가의 기본이 되는 호흡법을 배웁니다.'],
+      ['chapter-row-3', 'CHAPTER 02', '비니야사 플로우 기초', '비니야사 플로우의 기본 시퀀스와 흐름을 배웁니다.']
+    ],
+    'Sequence':    [['sequence-row-2', '태양 인사 A (Surya Namaskar A)', 'Surya Namaskar A 1\nMountain Pose\nForward Fold\nLow Lunge\nHigh Plank\nUpward Dog\nDownward Dog\nForward Fold\nMountain Pose', JSON.stringify(sequenceItems)]],
+    'Header-Body': [['header-body-row-2', '기본 호흡법 (Pranayama)', '복식 호흡(Diaphragmatic Breathing)을 통해 신체와 마음이 연결되고, 현재의 순간에 더욱 집중할 수 있습니다. 요가를 시작하기 전에 항상 편안한 좌세에서 몇 분간 호흡을 관찰하고 집중하세요.']],
+    'Body':        [['body-row-2', '요가 수련의 이점\n\n정기적인 요가 수련은 신체적, 정신적 건강을 증진시킵니다. 유연성 향상, 근력 강화, 스트레스 감소 등 다양한 이점이 있습니다.']],
+    'Blank':       [['blank-row-2', '']],
+    'Quote':       [['quote-row-2', '명언', '"요가는 단순한 운동이 아닙니다. 그것은 신체, 마음, 영혼의 통일입니다. 호흡을 통해 현재의 순간에 온전히 집중할 때, 우리는 진정한 자유를 경험합니다."']],
+    'PageOrder':   [
+      ['cover-row-2', 'cover', 0],
+      ['toc-row-2', 'toc', 1],
+      ['chapter-row-2', 'chapter', 2],
+      ['body-row-2', 'body', 3],
+      ['chapter-row-3', 'chapter', 4],
+      ['sequence-row-2', 'sequence', 5],
+      ['header-body-row-2', 'header-body', 6],
+      ['blank-row-2', 'blank', 7],
+      ['quote-row-2', 'quote', 8]
+    ]
+  };
+
+  // ===== 4. 데이터 일괄 입력 =====
+  Object.entries(sampleData).forEach(([sheetName, rows]) => {
+    const sheet = ss.getSheetByName(sheetName);
+    sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
+  });
+  Logger.log('✅ 샘플 데이터 입력 완료');
+
+  // ===== 5. 결과 =====
+  Logger.log('\n✅ 전체 초기화 완료!\n' +
+    '📋 10개 시트 초기화 + 샘플 데이터 입력\n' +
+    '🔗 ' + 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/edit\n\n' +
+    '⚠️ 다음 단계:\n' +
+    '1. Apps Script에서 GAS_SCRIPT.gs 코드 붙여넣기\n' +
+    '2. 배포 → 기존 배포 수정 → 배포\n' +
+    '3. 브라우저 새로고침');
+}
+</file>
+
+<file path="index.html">
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vivia - 나만의 eBook 만들기</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+</file>
+
+<file path="metadata.json">
+{
+  "name": "Vivia",
+  "description": "나만의 eBook을 만들고 편집하는 개인 전자책 제작 스튜디오",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "ebookk",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port=3000 --host=0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview",
+    "clean": "rm -rf dist server.js",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@google/genai": "^2.4.0",
+    "@tailwindcss/vite": "^4.1.14",
+    "@vitejs/plugin-react": "^5.0.4",
+    "lucide-react": "^0.546.0",
+    "react": "^19.0.1",
+    "react-dom": "^19.0.1",
+    "vite": "^6.2.3",
+    "express": "^4.21.2",
+    "dotenv": "^17.2.3",
+    "motion": "^12.23.24"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "autoprefixer": "^10.4.21",
+    "esbuild": "^0.25.0",
+    "tailwindcss": "^4.1.14",
+    "tsx": "^4.21.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.3",
+    "@types/express": "^4.17.21"
+  },
+  "packageManager": "pnpm@10.12.1+sha512.f0dda8580f0ee9481c5c79a1d927b9164f2c478e90992ad268bbb2465a736984391d6333d2c327913578b2804af33474ca554ba29c04a8b13060a717675ae3ac"
+}
+</file>
+
+<file path="README.md">
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
+</div>
+
+# Run and deploy your AI Studio app
+
+This contains everything you need to run your app locally.
+
+View your app in AI Studio: https://ai.studio/apps/57672c1f-71be-496a-a58f-4da345bc5022
+
+## Run Locally
+
+**Prerequisites:**  Node.js
+
+
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
+# ebookk
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "module": "ESNext",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "skipLibCheck": true,
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  }
+}
+</file>
+
+<file path="src/components/layout-helpers/PageNumberRenderer.tsx">
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
+import { PrintSettings } from '../../types';
+
+interface PageNumberRendererProps {
+  pageNum: number;
+  isRightPage: boolean;
+  isScreen: boolean;
+  unit: string;
+  paddingLeft: string | number;
+  paddingRight?: string | number;
+  contentWidth: string;
+  fontSize: string;
+  settings: PrintSettings;
+  marginBottom: string | number;
+}
+
+/**
+ * Renders page number in the footer
+ * - Left pages: number on the left
+ * - Right pages: number on the right
+ * 
+ * Note: This component is only rendered when showPageNumbers is true in PageRenderer.
+ * Layout-specific defaults are handled there, so no need to check settings again.
+ */
+export default function PageNumberRenderer({
+  pageNum,
+  isRightPage,
+  isScreen,
+  unit,
+  paddingLeft,
+  contentWidth,
+  fontSize,
+  settings,
+  marginBottom,
+}: PageNumberRendererProps) {
+  // Note: showPageNumbers filtering is done in PageRenderer based on layout config
+  // This component assumes it's only called when page numbers should be shown
+
+  const paddingLeftStr = typeof paddingLeft === 'number' ? `${paddingLeft}${unit}` : paddingLeft;
+  const marginBottomStr = typeof marginBottom === 'number' ? `${marginBottom}${unit}` : marginBottom;
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        bottom: marginBottomStr,
+        left: paddingLeftStr,
+        width: contentWidth,
+        display: 'flex',
+        justifyContent: 'space-between',
+        fontFamily: 'monospace',
+        fontSize,
+        color: isScreen ? undefined : 'rgba(0,0,0,0.6)',
+      }}
+    >
+      {!isRightPage ? (
+        <>
+          <span style={{ fontWeight: 700, color: isScreen ? undefined : '#B5714A' }}>
+            {pageNum}
+          </span>
+          <span style={{ opacity: 0 }}>.</span>
+        </>
+      ) : (
+        <>
+          <span style={{ opacity: 0 }}>.</span>
+          <span style={{ fontWeight: 700, color: isScreen ? undefined : '#B5714A' }}>
+            {pageNum}
+          </span>
+        </>
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/layouts/BodyLayoutContent.tsx">
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
+import { LayoutContentProps } from '../layout-helpers';
+
+export default function BodyLayoutContent({
+  page,
+  uF,
+  settings,
+}: LayoutContentProps) {
+  return (
+    <div style={{ height: '100%', width: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      {/* Page title - if provided */}
+      {page.title && (
+        <div
+          style={{
+            fontSize: uF(1.4),
+            fontWeight: 600,
+            lineHeight: 1.3,
+            marginBottom: uF(0.6),
+            paddingBottom: uF(0.3),
+            borderBottom: `1px solid rgba(0,0,0,0.1)`,
+          }}
+        >
+          {page.title}
+        </div>
+      )}
+      
+      {/* Content with drop cap */}
+      <div
+        style={{
+          flex: 1,
+          fontSize: uF(1),
+          lineHeight: settings.lineHeight,
+          overflow: 'hidden',
+          height: '100%',
+        }}
+      >
+        {page.content.length > 0 && (
+          <span
+            style={{
+              float: 'left',
+              fontSize: uF(3.4),
+              lineHeight: 0.82,
+              marginRight: uF(0.08),
+              marginTop: uF(0.06),
+              fontWeight: 700,
+              fontFamily: 'inherit',
+            }}
+          >
+            {page.content[0]}
+          </span>
+        )}
+        <span className="whitespace-pre-wrap break-words">
+          {page.content.length > 0 ? page.content.slice(1) : ''}
+        </span>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/layouts/HeaderBodyLayoutContent.tsx">
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
+import { LayoutContentProps } from '../layout-helpers';
+
+export default function HeaderBodyLayoutContent({
+  page,
+  uF,
+  settings,
+}: LayoutContentProps) {
+  return (
+    <div style={{ height: '100%', width: '100%', overflow: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column' }}>
+      {/* Page title - independent of running head */}
+      {page.title && (
+        <div
+          style={{
+            fontSize: uF(1.6),
+            fontWeight: 700,
+            lineHeight: 1.3,
+            marginBottom: uF(0.8),
+            paddingBottom: uF(0.4),
+            borderBottom: `1px solid rgba(0,0,0,0.15)`,
+          }}
+        >
+          {page.title}
+        </div>
+      )}
+      
+      {/* Content body with drop cap */}
+      <div
+        style={{
+          flex: 1,
+          fontSize: uF(1),
+          lineHeight: settings.lineHeight,
+          overflow: 'hidden',
+          height: '100%',
+        }}
+      >
+        {page.content.length > 0 && (
+          <span
+            style={{
+              float: 'left',
+              fontSize: uF(3.4),
+              lineHeight: 0.82,
+              marginRight: uF(0.08),
+              marginTop: uF(0.06),
+              fontWeight: 700,
+              fontFamily: 'inherit',
+            }}
+          >
+            {page.content[0]}
+          </span>
+        )}
+        <span className="whitespace-pre-wrap break-words">
+          {page.content.length > 0 ? page.content.slice(1) : ''}
+        </span>
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/layouts/SequenceLayoutContent.tsx">
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
+import { LayoutContentProps } from '../layout-helpers';
+
+export default function SequenceLayoutContent({
+  page,
+  uF,
+}: LayoutContentProps) {
+  const seqLines = page.content.split('\n').filter(Boolean);
+  const seqEntries = seqLines.map((line) => {
+    const idx = line.lastIndexOf(' ');
+    return idx === -1 ? { left: line, right: '' } : { left: line.slice(0, idx), right: line.slice(idx + 1) };
+  });
+
+  return (
+    <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
+      {/* Poem title - if provided */}
+      {page.title && (
+        <div
+          style={{
+            fontSize: uF(1.5),
+            fontWeight: 600,
+            lineHeight: 1.3,
+            marginBottom: uF(0.8),
+            paddingBottom: uF(0.4),
+            borderBottom: `1px solid rgba(0,0,0,0.12)`,
+            textAlign: 'center',
+          }}
+        >
+          {page.title}
+        </div>
+      )}
+      
+      {/* Sequence entries */}
+      {seqEntries.map((entry, i) => (
+        <div
+          key={i}
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'baseline',
+            paddingTop: uF(0.25),
+            paddingBottom: uF(0.25),
+            borderBottom: `0.2mm solid rgba(0,0,0,0.07)`,
+          }}
+        >
+          <span>{entry.left}</span>
+          <span
+            style={{
+              fontFamily: 'monospace',
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              fontSize: uF(0.78),
+              opacity: 0.5,
+              marginLeft: uF(1),
+            }}
+          >
+            {entry.right}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/PrintManager.tsx">
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
+import { Book, PrintSettings, PRESET_PAPER_SIZES } from '../types';
+import { Printer, CheckCircle, Info, Scissors, Eye, BookOpen } from 'lucide-react';
+
+interface PrintManagerProps {
+  book: Book;
+  settings: PrintSettings;
+  scale: number;
+}
+
+export default function PrintManager({ book, settings, scale }: PrintManagerProps) {
+  const paperSize = PRESET_PAPER_SIZES.find((p) => p.id === settings.paperSizeId) || PRESET_PAPER_SIZES[0];
+
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const ptToMm = 0.35277;
+  // Font sizes inside printing are hardcoded as standard point sizes in CSS,
+  // but for onscreen "Print Preview" grid, we can scale them using the calibration factor!
+  const fontPx = settings.fontSize * ptToMm * scale;
+
+  // Let's count how many total physical pages are there in the actual book
+  let absolutePageCounter = 1;
+  const printablePagesList: Array<{ text: string; isRightPage: boolean }> = [];
+
+  book.pages.forEach((page) => {
+    const isRightPage = absolutePageCounter % 2 !== 0;
+    printablePagesList.push({ text: page.content, isRightPage });
+    absolutePageCounter++;
+  });
+
+  // Book theme cover colors
+  const themeConfig = {
+    classic:  { bg: 'bg-[#2C261F] text-[#FAF6EC] border-[#4a3f30]' },
+    modern:   { bg: 'bg-[#111111] text-white border-[#333]' },
+    academic: { bg: 'bg-[#1E3A5F] text-white border-[#2a4f80]' },
+    zen:      { bg: 'bg-[#f9f9f7] text-[#333] border-[#ccc]' },
+  }[book.theme] || { bg: 'bg-[#2C261F] text-[#FAF6EC] border-[#4a3f30]' };
+  const coverThemeColors = themeConfig.bg;
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm w-full">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5 mb-6">
+        <div>
+          <div className="flex items-center gap-2 text-indigo-600 mb-1">
+            <Printer size={18} />
+            <span className="text-xs font-bold uppercase tracking-wider">Pre-Press & Print Panel</span>
+          </div>
+          <h2 className="text-lg font-bold text-slate-800">책 실제 규격 인쇄 및 모형 미리보기</h2>
+          <p className="text-xs text-slate-500">실제 종이 크기 및 여백 재단선 레이아웃 세팅</p>
+        </div>
+
+        <button
+          onClick={handlePrint}
+          className="flex items-center justify-center gap-2 px-5 py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-xl font-bold text-sm shadow-md transition-all scale-100 hover:scale-[1.02] cursor-pointer"
+        >
+          <Printer size={16} />
+          실물 책으로 프린트하기 (PDF 저장)
+        </button>
+      </div>
+
+      {/* Guide notice */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-xl flex items-start gap-3 md:col-span-2">
+          <Info className="text-indigo-600 shrink-0 mt-1" size={16} />
+          <div>
+            <h4 className="text-xs font-bold text-indigo-850 mb-2 flex items-center gap-1">
+              <span>인쇄 시 브라우저 설정 필수 가이드 (작업물 보존을 위한 필수 사항 ⚠️)</span>
+            </h4>
+            <div className="text-[11px] text-indigo-950/80 leading-relaxed space-y-2">
+              <p>
+                ① <strong>[배경 그래픽] 체크 활성화 (필수) 🎨</strong>: 
+                웹 브라우저는 기본적으로 잉크 절약을 위해 배경 색상과 테마를 인쇄에서 제외시키는 프리셋을 갖고 있습니다. 인쇄 설정창 우측의 옵션 항목에서 <strong>[배경 그래픽]</strong>에 <strong>반드시 체크</strong>를 해주셔야, 선택하신 Forest(초록색), Navy(남색) 등의 표지 컬러가 선명하게 채워진 채 깔끔히 인쇄됩니다.
+              </p>
+              <p>
+                ② <strong>[머리글과 바닥글] 체크 해제 ✂️</strong>: 
+                이 항목이 켜져 있으면 책 지면의 위아래에 웹사이트 URL, 날짜, 페이지 주소 등이 자동으로 인쇄되어 지저분해집니다. 반드시 체크를 <strong>해제</strong>하여 정갈한 단행본으로 인쇄해주십시오.
+              </p>
+              <p>
+                ③ <strong>[용지 크기] 설정 📏 (현재 선택된 서적 규격: <span className="text-indigo-600 font-bold underline">{paperSize.name.split(' (')[0]} - {paperSize.width}x{paperSize.height}mm</span>)</strong>: 
+                웹 브라우저의 기본 인쇄 설정은 A4 혹은 Letter 용지로 유지되는 경우가 많습니다. 인쇄 설정창 우측의 <strong>[설정 더보기]</strong>(또는 상세 설정) 메뉴를 확장하여 <strong>[용지 크기]</strong>를 현재 집필하신 책 규격인 <strong>{paperSize.name.split(' (')[0]} ({paperSize.width}x{paperSize.height}mm)</strong>로 맞춰주셔야 메인 영역의 하얀 좌우 빈 여백이 사라지고 면 지면에 꽉 찬 완벽한 단행본이 인쇄됩니다!
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-amber-50/50 border border-amber-100 p-4 rounded-xl flex items-start gap-3 md:col-span-2">
+          <Scissors className="text-amber-600 shrink-0 mt-0.5" size={16} />
+          <div>
+            <h4 className="text-xs font-bold text-amber-800 mb-1">양면 제본 가이드 (스프레드 여백)</h4>
+            <p className="text-[11px] text-amber-950/70 leading-relaxed">
+              책은 가운데를 묶는 제본선 영역이 들어가므로 홀수 쪽(우측 페이지)은 <strong>왼쪽에 추가 여백</strong>이, 
+              짝수 쪽(좌측 페이지)은 <strong>오른쪽에 추가 여백</strong>이 자동으로 삽입되어 완벽한 밸런스를 맞춥니다.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-2 mb-4">
+        <Eye style={{ color: '#B5714A' }} size={16} />
+        <h3 className="text-sm font-semibold" style={{ color: '#2A2420' }}>출력 전 실제 인쇄 배치 구조 (열 {printablePagesList.length + 1}페이지)</h3>
+      </div>
+
+      {/* Printed pages simulated deck preview */}
+      <div className="rounded-2xl p-6 overflow-auto max-h-[480px] flex flex-wrap gap-8 justify-center items-center select-none scrollbar-thin"
+        style={{ backgroundColor: '#F5F0E8', border: '1px solid #E8E0D4' }}
+      >
+        
+        {/* 1. SEED BOOK COVER (표지 미리보기) */}
+        <div className="flex flex-col items-center gap-2">
+          <span className="text-[10px] font-mono font-bold" style={{ color: '#B4A99E' }}>Page I (Front Cover)</span>
+          <div 
+            style={{
+              width: `${paperSize.width * scale * 0.5}px`, // scaled 50% for grid representation
+              height: `${paperSize.height * scale * 0.5}px`,
+              fontSize: `${fontPx * 0.5}px`
+            }}
+            className={`flex flex-col justify-between p-4 border rounded shadow-md text-center shrink-0 ${coverThemeColors}`}
+          >
+            <div className="flex flex-col items-center gap-1 mt-4">
+              <span className="text-[8px] opacity-60 font-mono tracking-widest leading-none block">{book.subtitle || 'MEMOIR NOVEL'}</span>
+              <h2 className="text-sm font-serif font-black select-none tracking-tight leading-6 mt-1 px-1">{book.title}</h2>
+              <div className="w-6 h-px bg-current opacity-30 my-1" />
+              <p className="text-[9px] font-medium leading-none block">{book.author}</p>
+            </div>
+            
+            <div className="flex flex-col items-center gap-1 mb-2">
+              <BookOpen className="opacity-70" size={14} />
+              <span className="text-[8px] font-mono opacity-50 block">{book.publisher || 'PRIVATE PRESS'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* 2. CHRONOLOGICAL PAGES SPREADS */}
+        {printablePagesList.map((page, index) => {
+          // padding computations
+          const pTopPx = settings.margins.top * scale * 0.5;
+          const pBottomPx = settings.margins.bottom * scale * 0.5;
+          const pInnerPx = settings.margins.inner * scale * 0.5;
+          const pOuterPx = settings.margins.outer * scale * 0.5;
+
+          const paddingLeftPx = page.isRightPage ? pInnerPx : pOuterPx;
+          const paddingRightPx = page.isRightPage ? pOuterPx : pInnerPx;
+
+          const absolutePageNum = index + 2; // cover is Page 1
+
+          return (
+            <div key={index} className="flex flex-col items-center gap-2 relative">
+              <span className="text-[10px] font-mono font-bold" style={{ color: '#B4A99E' }}>
+                Page {absolutePageNum} ({page.isRightPage ? 'Right' : 'Left'})
+              </span>
+              
+              <div
+                style={{
+                  width: `${paperSize.width * scale * 0.5}px`,
+                  height: `${paperSize.height * scale * 0.5}px`,
+                  paddingTop: `${pTopPx}px`,
+                  paddingBottom: `${pBottomPx}px`,
+                  paddingLeft: `${paddingLeftPx}px`,
+                  paddingRight: `${paddingRightPx}px`,
+                  fontSize: `${fontPx * 0.45}px`, // downscaled for grid item
+                  lineHeight: settings.lineHeight,
+                }}
+                className={`bg-white border text-slate-800 relative shadow-md transition-all duration-150 overflow-hidden text-left flex flex-col justify-between`}
+              >
+                {/* Crop/Trim marks simulation on miniature layout */}
+                {settings.showCropMarks && (
+                  <div className="absolute inset-0 pointer-events-none border border-dashed" style={{ borderColor: '#D0C4B4' }} />
+                )}
+
+                {/* Simulated running head */}
+                {settings.showRunningHead && (
+                  <div className="border-b border-slate-200 pb-0.5 text-[7px] font-mono text-slate-400 flex justify-between leading-none mb-1">
+                    {!page.isRightPage ? (
+                      <>
+                        <span className="truncate max-w-[60px] block">{book.title}</span>
+                        <span className="truncate max-w-[60px] block">{book.author}</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="truncate max-w-[60px] block">{book.author}</span>
+                        <span className="truncate max-w-[60px] block">{book.title}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+
+                {/* Content preview */}
+                <div className="h-full overflow-hidden leading-snug whitespace-pre-wrap text-[7px]" style={{ color: '#7A6F66' }}>
+                  {page.text}
+                </div>
+
+                {/* Simulated page numbers */}
+                {settings.showPageNumbers && (
+                  <div className="text-[6px] font-mono mt-1 leading-none pt-0.5 flex justify-between" style={{ color: '#B4A99E' }}>
+                    {!page.isRightPage ? (
+                      <>
+                        <span className="font-bold font-mono block" style={{ color: '#B5714A' }}>{absolutePageNum}</span>
+                        <span className="opacity-0">.</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="opacity-0">.</span>
+                        <span className="font-bold font-mono block" style={{ color: '#B5714A' }}>{absolutePageNum}</span>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+    </div>
+  );
+}
+</file>
+
+<file path="src/defaultSettings.ts">
+import { PageUnion, BookProject } from './types';
+
+/**
+ * 기본 설정값 (하드코딩)
+ * Defaults 시트 없이 코드에서 직접 관리
+ */
+
+export const DEFAULT_SETTINGS = {
+  theme: 'classic',
+  paperSize: 'a5',
+  margins: {
+    top: 21,
+    bottom: 21,
+    inner: 21,
+    outer: 15,
+  },
+  fontFamily: 'Noto Serif KR',
+  fontSize: 10,
+  lineHeight: 1.65,
+  showCropMarks: true,
+  showPageNumbers: true,
+  showRunningHead: true,
+  bleed: 3,
+} as const;
+
+/**
+ * GAS 로드 실패 시 표시할 기본 페이지들
+ */
+export const DEFAULT_PAGES: PageUnion[] = [
+  {
+    id: 'default-cover',
+    layoutType: 'cover',
+    title: '(디폴트) 새로운 책',
+    subtitle: 'Subtitle',
+    author: '(디폴트) Google Sheets 데이터 없음',
+  } as const,
+  {
+    id: 'default-toc',
+    layoutType: 'toc',
+    title: '목차',
+    tocEntries: [
+      { chapter: 'Chapter 01', title: '첫 번째 챕터', pageNum: 5 },
+      { chapter: 'Chapter 02', title: '두 번째 챕터', pageNum: 12 },
+    ],
+  } as const,
+  {
+    id: 'default-chapter-1',
+    layoutType: 'chapter',
+    title: 'CHAPTER 01',
+    content: '첫 번째 챕터 소개',
+  } as const,
+  {
+    id: 'default-body',
+    layoutType: 'body',
+    content: '(디폴트) 본문 내용이 여기에 표시됩니다.\n\nGoogle Sheets에서 데이터를 불러올 수 없어 기본값으로 표시됩니다.',
+  } as const,
+  {
+    id: 'default-chapter-2',
+    layoutType: 'chapter',
+    title: 'CHAPTER 02',
+    content: '두 번째 챕터 소개',
+  } as const,
+  {
+    id: 'default-sequence',
+    layoutType: 'sequence',
+    title: 'Sequence Example',
+    content: 'Line 1\nLine 2\nLine 3\nLine 4',
+  } as const,
+  {
+    id: 'default-header-body',
+    layoutType: 'header-body',
+    title: 'Section Title',
+    content: 'Section content goes here.',
+  } as const,
+  {
+    id: 'default-blank',
+    layoutType: 'blank',
+  } as const,
+  {
+    id: 'default-quote',
+    layoutType: 'quote',
+    title: 'Quote',
+    content: 'This is a quotation.',
+  } as const,
+];
+
+/**
+ * GAS 로드 실패 시 표시할 기본 프로젝트
+ */
+export const createDefaultBookProject = (): BookProject => ({
+  title: '(디폴트) 새로운 책',
+  subtitle: '(디폴트) 새로운 책 부제목',
+  author: '(디폴트) 저자 미정',
+  theme: DEFAULT_SETTINGS.theme as any,
+  paperSize: DEFAULT_SETTINGS.paperSize,
+  margins: DEFAULT_SETTINGS.margins,
+  fontFamily: DEFAULT_SETTINGS.fontFamily as any,
+  fontSize: DEFAULT_SETTINGS.fontSize,
+  lineHeight: DEFAULT_SETTINGS.lineHeight,
+  showCropMarks: DEFAULT_SETTINGS.showCropMarks,
+  showPageNumbers: DEFAULT_SETTINGS.showPageNumbers,
+  showRunningHead: DEFAULT_SETTINGS.showRunningHead,
+  bleed: DEFAULT_SETTINGS.bleed,
+  pages: DEFAULT_PAGES as any,
+});
+</file>
+
+<file path=".env.example">
+# GEMINI_API_KEY: Required for Gemini AI API calls.
+# AI Studio automatically injects this at runtime from user secrets.
+# Users configure this via the Secrets panel in the AI Studio UI.
+GEMINI_API_KEY="MY_GEMINI_API_KEY"
+
+# APP_URL: The URL where this applet is hosted.
+# AI Studio automatically injects this at runtime with the Cloud Run service URL.
+# Used for self-referential links, OAuth callbacks, and API endpoints.
+APP_URL="MY_APP_URL"
+
+# VITE_GAS_WEB_APP_URL: Google Apps Script 웹 앱 배포 URL
+# Google Apps Script → 배포 → 새 배포 → 웹 앱 → URL 복사
+VITE_GAS_WEB_APP_URL="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"
 </file>
 
 <file path="GAS_INSTRUCTIONS.md">
@@ -1281,122 +2064,33 @@ Quote Sheet (인용)
 - 📝 참고: 코드의 DEFAULTS 객체에 기본값이 정의되어 있으므로, Metadata에서 값이 없으면 자동으로 기본값 사용
 </file>
 
-<file path="index.html">
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>PRESLY - 실물 도서 편집 및 제판 스튜디오</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
-</file>
+<file path="vite.config.ts">
+import tailwindcss from '@tailwindcss/vite';
+import react from '@vitejs/plugin-react';
+import path from 'path';
+import {defineConfig, loadEnv} from 'vite';
 
-<file path="metadata.json">
-{
-  "name": "프레슬리 도서 제판 스튜디오",
-  "description": "실제 책 크기(A5, B6 등) 1:1 대조 보정 및 제본 여백, 재단선을 포함한 단행본 출력 지원 독립출판 제판 솔루션",
-  "requestFramePermissions": [],
-  "majorCapabilities": [
-    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
-  ]
-}
-</file>
-
-<file path="package.json">
-{
-  "name": "react-example",
-  "private": true,
-  "version": "0.0.0",
-  "type": "module",
-  "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
-    "build": "vite build",
-    "preview": "vite preview",
-    "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
-  },
-  "dependencies": {
-    "@google/genai": "^2.4.0",
-    "@tailwindcss/vite": "^4.1.14",
-    "@vitejs/plugin-react": "^5.0.4",
-    "lucide-react": "^0.546.0",
-    "react": "^19.0.1",
-    "react-dom": "^19.0.1",
-    "vite": "^6.2.3",
-    "express": "^4.21.2",
-    "dotenv": "^17.2.3",
-    "motion": "^12.23.24"
-  },
-  "devDependencies": {
-    "@types/node": "^22.14.0",
-    "autoprefixer": "^10.4.21",
-    "esbuild": "^0.25.0",
-    "tailwindcss": "^4.1.14",
-    "tsx": "^4.21.0",
-    "typescript": "~5.8.2",
-    "vite": "^6.2.3",
-    "@types/express": "^4.17.21"
-  },
-  "packageManager": "pnpm@10.12.1+sha512.f0dda8580f0ee9481c5c79a1d927b9164f2c478e90992ad268bbb2465a736984391d6333d2c327913578b2804af33474ca554ba29c04a8b13060a717675ae3ac"
-}
-</file>
-
-<file path="README.md">
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
-
-# Run and deploy your AI Studio app
-
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/57672c1f-71be-496a-a58f-4da345bc5022
-
-## Run Locally
-
-**Prerequisites:**  Node.js
-
-
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
-# ebookk
-</file>
-
-<file path="tsconfig.json">
-{
-  "compilerOptions": {
-    "target": "ES2022",
-    "experimentalDecorators": true,
-    "useDefineForClassFields": false,
-    "module": "ESNext",
-    "lib": [
-      "ES2022",
-      "DOM",
-      "DOM.Iterable"
-    ],
-    "skipLibCheck": true,
-    "moduleResolution": "bundler",
-    "isolatedModules": true,
-    "moduleDetection": "force",
-    "allowJs": true,
-    "jsx": "react-jsx",
-    "paths": {
-      "@/*": [
-        "./*"
-      ]
+export default defineConfig(({mode}) => {
+  const env = loadEnv(mode, '.', '');
+  return {
+    plugins: [react(), tailwindcss()],
+    define: {
+      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
     },
-    "allowImportingTsExtensions": true,
-    "noEmit": true
-  }
-}
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '.'),
+      },
+    },
+    server: {
+      // HMR is disabled in AI Studio via DISABLE_HMR env var.
+      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
+      hmr: process.env.DISABLE_HMR !== 'true',
+      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
+      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+    },
+  };
+});
 </file>
 
 <file path="src/components/layout-helpers/constants.ts">
@@ -1615,308 +2309,121 @@ export function getLayoutConfig(layoutType: string): LayoutConfig {
 }
 </file>
 
-<file path="src/components/layout-helpers/PageNumberRenderer.tsx">
+<file path="src/components/Calibration.tsx">
 /**
  * @license
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { PrintSettings } from '../../types';
+import React, { useEffect } from 'react';
+import { CreditCard, Ruler, RotateCcw } from 'lucide-react';
 
-interface PageNumberRendererProps {
-  pageNum: number;
-  isRightPage: boolean;
-  isScreen: boolean;
-  unit: string;
-  paddingLeft: string | number;
-  paddingRight?: string | number;
-  contentWidth: string;
-  fontSize: string;
-  settings: PrintSettings;
-  marginBottom: string | number;
-}
-
-/**
- * Renders page number in the footer
- * - Left pages: number on the left
- * - Right pages: number on the right
- * 
- * Note: This component is only rendered when showPageNumbers is true in PageRenderer.
- * Layout-specific defaults are handled there, so no need to check settings again.
- */
-export default function PageNumberRenderer({
-  pageNum,
-  isRightPage,
-  isScreen,
-  unit,
-  paddingLeft,
-  contentWidth,
-  fontSize,
-  settings,
-  marginBottom,
-}: PageNumberRendererProps) {
-  // Note: showPageNumbers filtering is done in PageRenderer based on layout config
-  // This component assumes it's only called when page numbers should be shown
-
-  const paddingLeftStr = typeof paddingLeft === 'number' ? `${paddingLeft}${unit}` : paddingLeft;
-  const marginBottomStr = typeof marginBottom === 'number' ? `${marginBottom}${unit}` : marginBottom;
-
-  return (
-    <div
-      style={{
-        position: 'absolute',
-        bottom: marginBottomStr,
-        left: paddingLeftStr,
-        width: contentWidth,
-        display: 'flex',
-        justifyContent: 'space-between',
-        fontFamily: 'monospace',
-        fontSize,
-        color: isScreen ? undefined : 'rgba(0,0,0,0.6)',
-      }}
-    >
-      {!isRightPage ? (
-        <>
-          <span style={{ fontWeight: 700, color: isScreen ? undefined : '#B5714A' }}>
-            {pageNum}
-          </span>
-          <span style={{ opacity: 0 }}>.</span>
-        </>
-      ) : (
-        <>
-          <span style={{ opacity: 0 }}>.</span>
-          <span style={{ fontWeight: 700, color: isScreen ? undefined : '#B5714A' }}>
-            {pageNum}
-          </span>
-        </>
-      )}
-    </div>
-  );
-}
-</file>
-
-<file path="src/components/PrintManager.tsx">
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React from 'react';
-import { Book, PrintSettings, PRESET_PAPER_SIZES } from '../types';
-import { Printer, CheckCircle, Info, Scissors, Eye, BookOpen } from 'lucide-react';
-
-interface PrintManagerProps {
-  book: Book;
-  settings: PrintSettings;
+interface CalibrationProps {
   scale: number;
+  onChangeScale: (newScale: number) => void;
 }
 
-export default function PrintManager({ book, settings, scale }: PrintManagerProps) {
-  const paperSize = PRESET_PAPER_SIZES.find((p) => p.id === settings.paperSizeId) || PRESET_PAPER_SIZES[0];
+export default function Calibration({ scale, onChangeScale }: CalibrationProps) {
+  // Constant measurements for a standard ID card in ISO/IEC 7810 ID-1: 85.6mm x 53.98mm
+  const CARD_WIDTH_MM = 85.6;
+  const CARD_HEIGHT_MM = 53.98;
 
-  const handlePrint = () => {
-    window.print();
+  const handleReset = () => {
+    onChangeScale(3);
   };
 
-  const ptToMm = 0.35277;
-  // Font sizes inside printing are hardcoded as standard point sizes in CSS,
-  // but for onscreen "Print Preview" grid, we can scale them using the calibration factor!
-  const fontPx = settings.fontSize * ptToMm * scale;
-
-  // Let's count how many total physical pages are there in the actual book
-  let absolutePageCounter = 1;
-  const printablePagesList: Array<{ text: string; isRightPage: boolean }> = [];
-
-  book.pages.forEach((page) => {
-    const isRightPage = absolutePageCounter % 2 !== 0;
-    printablePagesList.push({ text: page.content, isRightPage });
-    absolutePageCounter++;
-  });
-
-  // Book theme cover colors
-  const themeConfig = {
-    classic:  { bg: 'bg-[#2C261F] text-[#FAF6EC] border-[#4a3f30]' },
-    modern:   { bg: 'bg-[#111111] text-white border-[#333]' },
-    academic: { bg: 'bg-[#1E3A5F] text-white border-[#2a4f80]' },
-    zen:      { bg: 'bg-[#f9f9f7] text-[#333] border-[#ccc]' },
-  }[book.theme] || { bg: 'bg-[#2C261F] text-[#FAF6EC] border-[#4a3f30]' };
-  const coverThemeColors = themeConfig.bg;
+  // Convert scale to DPI for tech explanation
+  const currentDPL = Math.round(scale * 25.4);
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm w-full">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5 mb-6">
+    <div id="calibration-widget" className="rounded-2xl p-6 max-w-md w-full" style={{ backgroundColor: '#FDFAF6', border: '1px solid #E8E0D4' }}>
+      <div className="flex items-center gap-3 mb-4">
+        <div className="p-2.5 rounded-xl" style={{ backgroundColor: '#F5F0E8', color: '#B5714A' }}>
+          <Ruler size={18} />
+        </div>
         <div>
-          <div className="flex items-center gap-2 text-indigo-600 mb-1">
-            <Printer size={18} />
-            <span className="text-xs font-bold uppercase tracking-wider">Pre-Press & Print Panel</span>
-          </div>
-          <h2 className="text-lg font-bold text-slate-800">책 실제 규격 인쇄 및 모형 미리보기</h2>
-          <p className="text-xs text-slate-500">실제 종이 크기 및 여백 재단선 레이아웃 세팅</p>
+          <h3 className="font-semibold text-sm" style={{ color: '#2A2420' }}>실물 크기 1:1 보정 (Calibration)</h3>
+          <p className="text-xs" style={{ color: '#7A6F66' }}>모니터 해상도별 실제 출력 크기 싱크 맞춰기</p>
         </div>
+      </div>
 
-        <button
-          onClick={handlePrint}
-          className="flex items-center justify-center gap-2 px-5 py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-xl font-bold text-sm shadow-md transition-all scale-100 hover:scale-[1.02] cursor-pointer"
+      <p className="text-xs leading-relaxed p-3.5 rounded-xl mb-6" style={{ backgroundColor: '#F5F0E8', color: '#7A6F66' }}>
+        화면에 <strong>신용카드</strong>나 <strong>신분증</strong>을 직접 대고, 아래 가이드 카드의 크기가 
+        실물 카드와 가로가 똑같아지도록 아래 슬라이더를 세밀하게 조절해 주세요. 완료되면 
+        화면의 책 크기가 <strong>실제 인쇄될 1:1 실물 크기</strong>로 표시됩니다!
+      </p>
+
+      {/* Interactive Card Canvas */}
+      <div className="relative flex justify-center py-6 rounded-2xl mb-6 overflow-hidden min-h-[180px] items-center" style={{ backgroundColor: 'rgba(42,36,32,0.05)' }}>
+        {/* Virtual Credit Card */}
+        <div 
+          style={{
+            width: `${CARD_WIDTH_MM * scale}px`,
+            height: `${CARD_HEIGHT_MM * scale}px`,
+            transition: 'width 0.1s ease-out, height 0.1s ease-out',
+          }}
+          className="relative bg-gradient-to-tr from-slate-800 via-indigo-950 to-slate-900 rounded-xl shadow-xl flex flex-col justify-between p-4 border border-white/15 text-white overflow-hidden select-none"
         >
-          <Printer size={16} />
-          실물 책으로 프린트하기 (PDF 저장)
-        </button>
-      </div>
+          {/* Card Accent Grid */}
+          <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:14px_24px]" />
+          
+          <div className="flex justify-between items-start relative z-10">
+            <span className="text-[9px] tracking-wider text-slate-400 font-mono">CALIBRATION CARD</span>
+            <div className="w-8 h-6 bg-amber-400/90 rounded opacity-80" /> {/* Chip */}
+          </div>
 
-      {/* Guide notice */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-        <div className="bg-indigo-50/50 border border-indigo-100 p-4 rounded-xl flex items-start gap-3 md:col-span-2">
-          <Info className="text-indigo-600 shrink-0 mt-1" size={16} />
-          <div>
-            <h4 className="text-xs font-bold text-indigo-850 mb-2 flex items-center gap-1">
-              <span>인쇄 시 브라우저 설정 필수 가이드 (작업물 보존을 위한 필수 사항 ⚠️)</span>
-            </h4>
-            <div className="text-[11px] text-indigo-950/80 leading-relaxed space-y-2">
-              <p>
-                ① <strong>[배경 그래픽] 체크 활성화 (필수) 🎨</strong>: 
-                웹 브라우저는 기본적으로 잉크 절약을 위해 배경 색상과 테마를 인쇄에서 제외시키는 프리셋을 갖고 있습니다. 인쇄 설정창 우측의 옵션 항목에서 <strong>[배경 그래픽]</strong>에 <strong>반드시 체크</strong>를 해주셔야, 선택하신 Forest(초록색), Navy(남색) 등의 표지 컬러가 선명하게 채워진 채 깔끔히 인쇄됩니다.
-              </p>
-              <p>
-                ② <strong>[머리글과 바닥글] 체크 해제 ✂️</strong>: 
-                이 항목이 켜져 있으면 책 지면의 위아래에 웹사이트 URL, 날짜, 페이지 주소 등이 자동으로 인쇄되어 지저분해집니다. 반드시 체크를 <strong>해제</strong>하여 정갈한 단행본으로 인쇄해주십시오.
-              </p>
-              <p>
-                ③ <strong>[용지 크기] 설정 📏 (현재 선택된 서적 규격: <span className="text-indigo-600 font-bold underline">{paperSize.name.split(' (')[0]} - {paperSize.width}x{paperSize.height}mm</span>)</strong>: 
-                웹 브라우저의 기본 인쇄 설정은 A4 혹은 Letter 용지로 유지되는 경우가 많습니다. 인쇄 설정창 우측의 <strong>[설정 더보기]</strong>(또는 상세 설정) 메뉴를 확장하여 <strong>[용지 크기]</strong>를 현재 집필하신 책 규격인 <strong>{paperSize.name.split(' (')[0]} ({paperSize.width}x{paperSize.height}mm)</strong>로 맞춰주셔야 메인 영역의 하얀 좌우 빈 여백이 사라지고 면 지면에 꽉 찬 완벽한 단행본이 인쇄됩니다!
-              </p>
+          <div className="relative z-10 my-1">
+            <div className="text-xs font-mono tracking-widest text-slate-300">•••• •••• •••• ••••</div>
+          </div>
+
+          <div className="flex justify-between items-end relative z-10">
+            <div className="flex flex-col">
+              <span className="text-[7px] text-slate-500 uppercase font-mono">Card Width</span>
+              <span className="text-[10px] font-mono font-medium text-indigo-200">85.60 mm</span>
             </div>
-          </div>
-        </div>
-
-        <div className="bg-amber-50/50 border border-amber-100 p-4 rounded-xl flex items-start gap-3 md:col-span-2">
-          <Scissors className="text-amber-600 shrink-0 mt-0.5" size={16} />
-          <div>
-            <h4 className="text-xs font-bold text-amber-800 mb-1">양면 제본 가이드 (스프레드 여백)</h4>
-            <p className="text-[11px] text-amber-950/70 leading-relaxed">
-              책은 가운데를 묶는 제본선 영역이 들어가므로 홀수 쪽(우측 페이지)은 <strong>왼쪽에 추가 여백</strong>이, 
-              짝수 쪽(좌측 페이지)은 <strong>오른쪽에 추가 여백</strong>이 자동으로 삽입되어 완벽한 밸런스를 맞춥니다.
-            </p>
+            <CreditCard size={18} className="text-slate-400 opacity-60" />
           </div>
         </div>
       </div>
 
-      <div className="flex items-center gap-2 mb-4">
-        <Eye style={{ color: '#B5714A' }} size={16} />
-        <h3 className="text-sm font-semibold" style={{ color: '#2A2420' }}>출력 전 실제 인쇄 배치 구조 (열 {printablePagesList.length + 1}페이지)</h3>
-      </div>
+      {/* Control Slider */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center text-xs font-medium" style={{ color: '#2A2420' }}>
+          <span>비율 조절 슬라이더</span>
+          <span className="font-mono px-2 py-0.5 rounded text-[11px]" style={{ backgroundColor: '#F5F0E8', color: '#B5714A' }}>
+            {scale.toFixed(2)} px/mm ({currentDPL} DPI)
+          </span>
+        </div>
 
-      {/* Printed pages simulated deck preview */}
-      <div className="rounded-2xl p-6 overflow-auto max-h-[480px] flex flex-wrap gap-8 justify-center items-center select-none scrollbar-thin"
-        style={{ backgroundColor: '#F5F0E8', border: '1px solid #E8E0D4' }}
-      >
-        
-        {/* 1. SEED BOOK COVER (표지 미리보기) */}
-        <div className="flex flex-col items-center gap-2">
-          <span className="text-[10px] font-mono font-bold" style={{ color: '#B4A99E' }}>Page I (Front Cover)</span>
-          <div 
-            style={{
-              width: `${paperSize.width * scale * 0.5}px`, // scaled 50% for grid representation
-              height: `${paperSize.height * scale * 0.5}px`,
-              fontSize: `${fontPx * 0.5}px`
-            }}
-            className={`flex flex-col justify-between p-4 border rounded shadow-md text-center shrink-0 ${coverThemeColors}`}
+        <input
+          type="range"
+          min="2.0"
+          max="6.0"
+          step="0.01"
+          value={scale}
+          onChange={(e) => onChangeScale(parseFloat(e.target.value))}
+          className="w-full h-1.5 rounded-lg appearance-none cursor-ew-resize outline-none"
+          style={{ accentColor: '#B5714A', backgroundColor: '#E8E0D4' }}
+        />
+
+        <div className="flex justify-between items-center text-[10px] font-mono" style={{ color: '#B4A99E' }}>
+          <span>작은 모니터 (DPI 낮음)</span>
+          <span>큰 모니터/고정밀 (DPI 높음)</span>
+        </div>
+
+        <div className="pt-2 flex justify-end" style={{ borderTop: '1px solid #E8E0D4' }}>
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer"
+            style={{ color: '#B4A99E' }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = '#B5714A')}
+            onMouseLeave={(e) => (e.currentTarget.style.color = '#B4A99E')}
           >
-            <div className="flex flex-col items-center gap-1 mt-4">
-              <span className="text-[8px] opacity-60 font-mono tracking-widest leading-none block">{book.subtitle || 'MEMOIR NOVEL'}</span>
-              <h2 className="text-sm font-serif font-black select-none tracking-tight leading-6 mt-1 px-1">{book.title}</h2>
-              <div className="w-6 h-px bg-current opacity-30 my-1" />
-              <p className="text-[9px] font-medium leading-none block">{book.author}</p>
-            </div>
-            
-            <div className="flex flex-col items-center gap-1 mb-2">
-              <BookOpen className="opacity-70" size={14} />
-              <span className="text-[8px] font-mono opacity-50 block">{book.publisher || 'PRIVATE PRESS'}</span>
-            </div>
-          </div>
+            <RotateCcw size={13} />
+            기본값 복원
+          </button>
         </div>
-
-        {/* 2. CHRONOLOGICAL PAGES SPREADS */}
-        {printablePagesList.map((page, index) => {
-          // padding computations
-          const pTopPx = settings.margins.top * scale * 0.5;
-          const pBottomPx = settings.margins.bottom * scale * 0.5;
-          const pInnerPx = settings.margins.inner * scale * 0.5;
-          const pOuterPx = settings.margins.outer * scale * 0.5;
-
-          const paddingLeftPx = page.isRightPage ? pInnerPx : pOuterPx;
-          const paddingRightPx = page.isRightPage ? pOuterPx : pInnerPx;
-
-          const absolutePageNum = index + 2; // cover is Page 1
-
-          return (
-            <div key={index} className="flex flex-col items-center gap-2 relative">
-              <span className="text-[10px] font-mono font-bold" style={{ color: '#B4A99E' }}>
-                Page {absolutePageNum} ({page.isRightPage ? 'Right' : 'Left'})
-              </span>
-              
-              <div
-                style={{
-                  width: `${paperSize.width * scale * 0.5}px`,
-                  height: `${paperSize.height * scale * 0.5}px`,
-                  paddingTop: `${pTopPx}px`,
-                  paddingBottom: `${pBottomPx}px`,
-                  paddingLeft: `${paddingLeftPx}px`,
-                  paddingRight: `${paddingRightPx}px`,
-                  fontSize: `${fontPx * 0.45}px`, // downscaled for grid item
-                  lineHeight: settings.lineHeight,
-                }}
-                className={`bg-white border text-slate-800 relative shadow-md transition-all duration-150 overflow-hidden text-left flex flex-col justify-between`}
-              >
-                {/* Crop/Trim marks simulation on miniature layout */}
-                {settings.showCropMarks && (
-                  <div className="absolute inset-0 pointer-events-none border border-dashed" style={{ borderColor: '#D0C4B4' }} />
-                )}
-
-                {/* Simulated running head */}
-                {settings.showRunningHead && (
-                  <div className="border-b border-slate-200 pb-0.5 text-[7px] font-mono text-slate-400 flex justify-between leading-none mb-1">
-                    {!page.isRightPage ? (
-                      <>
-                        <span className="truncate max-w-[60px] block">{book.title}</span>
-                        <span className="truncate max-w-[60px] block">{book.author}</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="truncate max-w-[60px] block">{book.author}</span>
-                        <span className="truncate max-w-[60px] block">{book.title}</span>
-                      </>
-                    )}
-                  </div>
-                )}
-
-                {/* Content preview */}
-                <div className="h-full overflow-hidden leading-snug whitespace-pre-wrap text-[7px]" style={{ color: '#7A6F66' }}>
-                  {page.text}
-                </div>
-
-                {/* Simulated page numbers */}
-                {settings.showPageNumbers && (
-                  <div className="text-[6px] font-mono mt-1 leading-none pt-0.5 flex justify-between" style={{ color: '#B4A99E' }}>
-                    {!page.isRightPage ? (
-                      <>
-                        <span className="font-bold font-mono block" style={{ color: '#B5714A' }}>{absolutePageNum}</span>
-                        <span className="opacity-0">.</span>
-                      </>
-                    ) : (
-                      <>
-                        <span className="opacity-0">.</span>
-                        <span className="font-bold font-mono block" style={{ color: '#B5714A' }}>{absolutePageNum}</span>
-                      </>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
       </div>
-
     </div>
   );
 }
@@ -1987,6 +2494,7 @@ export function useEbookSheet(gasWebAppUrl: string): UseEbookSheetReturn {
 
       return {
         title: result.metadata.title || '',
+        subtitle: result.metadata.subtitle || '',
         author: result.metadata.author || '',
         theme: result.metadata.theme || DEFAULTS.theme,
         paperSize: result.metadata.paperSize || DEFAULTS.paperSize,
@@ -2178,6 +2686,7 @@ export function useEbookSheet(gasWebAppUrl: string): UseEbookSheetReturn {
             data: {
               metadata: {
                 title: project.title,
+                subtitle: project.subtitle,
                 author: project.author,
                 theme: project.theme,
                 paperSize: project.paperSize,
@@ -2225,1044 +2734,6 @@ export function useEbookSheet(gasWebAppUrl: string): UseEbookSheetReturn {
 }
 </file>
 
-<file path=".env.example">
-# GEMINI_API_KEY: Required for Gemini AI API calls.
-# AI Studio automatically injects this at runtime from user secrets.
-# Users configure this via the Secrets panel in the AI Studio UI.
-GEMINI_API_KEY="MY_GEMINI_API_KEY"
-
-# APP_URL: The URL where this applet is hosted.
-# AI Studio automatically injects this at runtime with the Cloud Run service URL.
-# Used for self-referential links, OAuth callbacks, and API endpoints.
-APP_URL="MY_APP_URL"
-
-# VITE_GAS_WEB_APP_URL: Google Apps Script 웹 앱 배포 URL
-# Google Apps Script → 배포 → 새 배포 → 웹 앱 → URL 복사
-VITE_GAS_WEB_APP_URL="https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec"
-</file>
-
-<file path="GAS_AUTO_SETUP.gs">
-/**
- * 🚀 e-book-artisan 전체 초기화 (원클릭!)
- * 기존 데이터를 모두 삭제하고 깨끗한 상태로 초기화합니다
- */
-function autoSetupEbookSheets() {
-  Logger.log('🚀 e-book-artisan 전체 초기화 시작...');
-  
-  const SHEET_ID = '1gwvXdXGV8IEjQ5q82Fo9gEusW8k9ZVXVzQ6R_4iex24';
-  const ss = SpreadsheetApp.openById(SHEET_ID);
-
-  // ===== 1. 시트 구조 정의 =====
-  const sheetConfig = {
-    'Metadata':    ['title', 'author', 'theme', 'paperSize', 'margins', 'fontFamily', 'fontSize', 'lineHeight', 'showCropMarks', 'bleed', 'cover_showPageNumbers', 'cover_showRunningHead', 'toc_showPageNumbers', 'toc_showRunningHead', 'chapter_showPageNumbers', 'chapter_showRunningHead', 'body_showPageNumbers', 'body_showRunningHead', 'quote_showPageNumbers', 'quote_showRunningHead', 'sequence_showPageNumbers', 'sequence_showRunningHead', 'header-body_showPageNumbers', 'header-body_showRunningHead', 'blank_showPageNumbers', 'blank_showRunningHead'],
-    'PageOrder':   ['id', 'pageType', 'orderIndex'],
-    'Cover':       ['id', 'title', 'subtitle', 'author'],
-    'TOC':         ['id', 'title', 'tocEntries_json'],
-    'Chapter':     ['id', 'title', 'subtitle', 'content'],
-    'Sequence':    ['id', 'title', 'content', 'items_json'],
-    'Header-Body': ['id', 'title', 'content'],
-    'Body':        ['id', 'content'],
-    'Blank':       ['id', 'content'],
-    'Quote':       ['id', 'title', 'content']
-  };
-
-  // ===== 2. 모든 시트 초기화 (생성 + 기존 데이터 삭제) =====
-  Object.entries(sheetConfig).forEach(([sheetName, headers]) => {
-    let sheet = ss.getSheetByName(sheetName);
-    if (!sheet) {
-      sheet = ss.insertSheet(sheetName);
-    } else if (sheet.getLastRow() > 1) {
-      sheet.deleteRows(2, sheet.getLastRow() - 1);
-    }
-    sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
-  });
-  Logger.log('✅ 10개 시트 초기화 완료');
-
-  // ===== 3. 샘플 데이터 (일괄 작성) =====
-  const tocEntries = [
-    { chapter: 'Chapter 01', title: '기본 호흡법', pageNumber: '5' },
-    { chapter: 'Chapter 02', title: '워밍업', pageNumber: '12' },
-    { chapter: 'Chapter 03', title: '플로우 시작', pageNumber: '18' }
-  ];
-  const sequenceItems = ['Mountain Pose', 'Forward Fold', 'Low Lunge', 'High Plank', 'Upward Dog', 'Downward Dog', 'Forward Fold', 'Mountain Pose'];
-  const metadataMargins = JSON.stringify({top: 21, bottom: 21, inner: 21, outer: 15});
-
-  const sampleData = {
-    'Metadata':    [[
-      '빈야사 플로우: 새벽의 요가',                          // title (0)
-      '요가 강사 김상호',                                 // author (1)
-      'classic',                                        // theme (2)
-      'a5',                                             // paperSize (3)
-      metadataMargins,                                  // margins (4)
-      'Noto Serif KR',                                  // fontFamily (5)
-      10,                                               // fontSize (6)
-      1.65,                                             // lineHeight (7)
-      'TRUE',                                           // showCropMarks (8)
-      3,                                                // bleed (9)
-      'FALSE', 'FALSE',                                 // cover_showPageNumbers, cover_showRunningHead (10-11)
-      'TRUE', 'FALSE',                                  // toc_showPageNumbers, toc_showRunningHead (12-13)
-      'FALSE', 'FALSE',                                 // chapter_showPageNumbers, chapter_showRunningHead (14-15)
-      'TRUE', 'TRUE',                                   // body_showPageNumbers, body_showRunningHead (16-17)
-      'TRUE', 'TRUE',                                   // quote_showPageNumbers, quote_showRunningHead (18-19)
-      'TRUE', 'TRUE',                                   // sequence_showPageNumbers, sequence_showRunningHead (20-21)
-      'TRUE', 'TRUE',                                   // header-body_showPageNumbers, header-body_showRunningHead (22-23)
-      'FALSE', 'FALSE'                                  // blank_showPageNumbers, blank_showRunningHead (24-25)
-    ]],
-    'Cover':       [['cover-row-2', '~~~ 커버 빈야사 플로우: 새벽의 요가', 'Morning Flow', '요가 강사 김상호']],
-    'TOC':         [['toc-row-2', '목차', JSON.stringify(tocEntries)]],
-    'Chapter':     [['chapter-row-2', 'CHAPTER 01', '기본 호흡법', '이 챕터에서는 요가의 기본이 되는 호흡법을 배웁니다.']],
-    'Sequence':    [['sequence-row-2', '태양 인사 A (Surya Namaskar A)', 'Surya Namaskar A 1\nMountain Pose\nForward Fold\nLow Lunge\nHigh Plank\nUpward Dog\nDownward Dog\nForward Fold\nMountain Pose', JSON.stringify(sequenceItems)]],
-    'Header-Body': [['header-body-row-2', '기본 호흡법 (Pranayama)', '복식 호흡(Diaphragmatic Bre흠을 통해 신체와 마음이 연결되고, 현재의 순간에 더욱 집중할 수 있습니다. 요가를 시작하기 전에 항상 편안한 좌세에서 몇 분간 호흡을 관찰하고 집중하세요.']],
-    'Blank':       [['blank-row-2', '']],
-    'Quote':       [['quote-row-2', '명언', '"요가는 단순한 운동이 아닙니다. 그것은 신체, 마음, 영혼의 통일입니다. 호흡을 통해 현재의 순간에 온전히 집중할 때, 우리는 진정한 자유를 경험합니다."']],
-    'PageOrder':   [
-      ['cover-row-2', 'cover', 0],
-      ['toc-row-2', 'toc', 1],
-      ['chapter-row-2', 'chapter', 2],
-      ['sequence-row-2', 'sequence', 3],
-      ['header-body-row-2', 'header-body', 4],
-      ['body-row-2', 'body', 5],
-      ['blank-row-2', 'blank', 6],
-      ['quote-row-2', 'quote', 7]
-    ]
-  };
-
-  // ===== 4. 데이터 일괄 입력 =====
-  Object.entries(sampleData).forEach(([sheetName, rows]) => {
-    const sheet = ss.getSheetByName(sheetName);
-    sheet.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
-  });
-  Logger.log('✅ 샘플 데이터 입력 완료');
-
-  // ===== 5. 결과 =====
-  Logger.log('\n✅ 전체 초기화 완료!\n' +
-    '📋 10개 시트 초기화 + 샘플 데이터 입력\n' +
-    '🔗 ' + 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/edit\n\n' +
-    '⚠️ 다음 단계:\n' +
-    '1. Apps Script에서 GAS_SCRIPT.gs 코드 붙여넣기\n' +
-    '2. 배포 → 기존 배포 수정 → 배포\n' +
-    '3. 브라우저 새로고침');
-}
-</file>
-
-<file path="GAS_SCRIPT.gs">
-// ====== Google Apps Script for e-book-artisan ======
-// Deploy as Web App: Execute as Me, Anyone can access
-
-const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
-const SHEET_NAMES = {
-  metadata: 'Metadata',
-  cover: 'Cover',
-  toc: 'TOC',
-  chapter: 'Chapter',
-  sequence: 'Sequence',
-  body: 'Body',
-  blank: 'Blank',
-  headerBody: 'Header-Body',
-  quote: 'Quote'
-};
-
-// 기본값은 Metadata 시트에서 페이지 타입별로 관리됨
-
-const PAGE_TYPE_SHEETS = {
-  'cover': 'Cover',
-  'toc': 'TOC',
-  'chapter': 'Chapter',
-  'sequence': 'Sequence',
-  'header-body': 'Header-Body',
-  'blank': 'Blank',
-  'body': 'Body',
-  'quote': 'Quote'
-};
-
-function doGet(e) {
-  try {
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-    const sheets = {};
-    
-    // 모든 시트를 한 번에 가져오기
-    ss.getSheets().forEach(s => { sheets[s.getName()] = s; });
-    
-    // Load Metadata (26 columns: 10 base + 16 page-type-specific)
-    const metadataSheet = sheets[SHEET_NAMES.metadata];
-    const metadataRow = metadataSheet.getRange(2, 1, 1, 26).getValues()[0];
-    const metadata = {
-      title: metadataRow[0] || '',
-      author: metadataRow[1] || '',
-      theme: metadataRow[2] || 'classic',
-      paperSize: metadataRow[3] || 'a5',
-      margins: _parseMargins(metadataRow[4]) || { top: 21, bottom: 21, inner: 21, outer: 15 },
-      fontFamily: metadataRow[5] || 'Noto Serif KR',
-      fontSize: _parseNumber(metadataRow[6]) || 10,
-      lineHeight: _parseNumber(metadataRow[7]) || 1.65,
-      showCropMarks: _parseBoolean(metadataRow[8]) ?? true,
-      bleed: _parseNumber(metadataRow[9]) || 3,
-    };
-
-    // Page type-specific visibility settings (from metadata columns 10-25)
-    const pageTypeNames = ['cover', 'toc', 'chapter', 'body', 'quote', 'sequence', 'header-body', 'blank'];
-    const pageTypeVisibility = {};
-    pageTypeNames.forEach((pageType, idx) => {
-      const baseCol = 10 + (idx * 2);
-      pageTypeVisibility[pageType] = {
-        showPageNumbers: _parseBoolean(metadataRow[baseCol]) ?? true,
-        showRunningHead: _parseBoolean(metadataRow[baseCol + 1]) ?? true,
-      };
-    });
-    
-    // Add pageTypeVisibility to metadata for frontend
-    metadata.pageTypeVisibility = pageTypeVisibility;
-
-    // Load PageOrder (id, pageType, orderIndex only - 3 columns)
-    const pageOrderMap = {};
-    const pageOrderSheet = sheets['PageOrder'];
-    if (pageOrderSheet && pageOrderSheet.getLastRow() > 1) {
-      const orderData = pageOrderSheet.getRange(2, 1, pageOrderSheet.getLastRow() - 1, 3).getValues();
-      for (let i = 0; i < orderData.length; i++) {
-        if (orderData[i][0]) {
-          pageOrderMap[orderData[i][0]] = {
-            order: orderData[i][2] !== '' ? orderData[i][2] : i,
-            pageType: orderData[i][1],
-          };
-        }
-      }
-    }
-
-    // Load all pages from each PageType sheet
-    let pages = [];
-    
-    Object.entries(PAGE_TYPE_SHEETS).forEach(([pageType, sheetName]) => {
-      const sheet = sheets[sheetName];
-      if (!sheet || sheet.getLastRow() <= 1) return;
-      
-      const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
-      
-      for (let i = 0; i < data.length; i++) {
-        const row = data[i];
-        if (!row[0] || row[0].toString().trim() === '') continue;
-        
-        const pageData = _rowToObject(pageType, row, i + 2);
-        
-        // Add page-type visibility settings from metadata
-        const typeSettings = pageTypeVisibility[pageType] || { showPageNumbers: true, showRunningHead: true };
-        pageData.showPageNumbers = typeSettings.showPageNumbers;
-        pageData.showRunningHead = typeSettings.showRunningHead;
-        
-        pages.push(pageData);
-      }
-    });
-
-    // PageOrder 기준으로 정렬
-    pages.sort((a, b) => {
-      const orderA = pageOrderMap[a.id]?.order ?? 999;
-      const orderB = pageOrderMap[b.id]?.order ?? 999;
-      return orderA - orderB;
-    });
-
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'success',
-      metadata: metadata,
-      pages: pages
-    }))
-      .setMimeType(ContentService.MimeType.JSON);
-    
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'error',
-      message: err.toString()
-    }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-function doPost(e) {
-  try {
-    // 요청 파싱
-    let params;
-    if (e.postData && e.postData.contents) {
-      params = JSON.parse(e.postData.contents);
-    } else {
-      throw new Error('No POST data received');
-    }
-    
-    const { action, pageType, rowIndex, data } = params;
-    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
-
-    // ===== METADATA UPDATE =====
-    if (action === 'updateMetadata') {
-      const metadataSheet = ss.getSheetByName(SHEET_NAMES.metadata);
-      const marginStr = typeof data.metadata.margins === 'string' 
-        ? data.metadata.margins 
-        : JSON.stringify(data.metadata.margins);
-      
-      // Build 26-column array
-      const pageTypeNames = ['cover', 'toc', 'chapter', 'body', 'quote', 'sequence', 'header-body', 'blank'];
-      const metadataValues = [
-        data.metadata.title || '',
-        data.metadata.author || '',
-        data.metadata.theme || 'classic',
-        data.metadata.paperSize || 'a5',
-        marginStr,
-        data.metadata.fontFamily || 'Noto Serif KR',
-        data.metadata.fontSize || 10,
-        data.metadata.lineHeight || 1.65,
-        data.metadata.showCropMarks ? 'TRUE' : 'FALSE',
-        data.metadata.bleed || 3,
-      ];
-      
-      // Add page-type-specific settings (columns 10-25)
-      pageTypeNames.forEach((pageType) => {
-        const settings = data.metadata[`${pageType}_visibility`] || { showPageNumbers: true, showRunningHead: true };
-        metadataValues.push(settings.showPageNumbers ? 'TRUE' : 'FALSE');
-        metadataValues.push(settings.showRunningHead ? 'TRUE' : 'FALSE');
-      });
-      
-      metadataSheet.getRange(2, 1, 1, 26).setValues([metadataValues]);
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'success',
-        message: 'Metadata updated'
-      }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // ===== SYNC ALL (전체 동기화) =====
-    if (action === 'syncAll') {
-      const allPages = data.pages || [];
-      const orderEntries = [];
-
-      // 각 시트의 기존 데이터 삭제 후 새로 작성
-      Object.entries(PAGE_TYPE_SHEETS).forEach(([pType, sName]) => {
-        const s = ss.getSheetByName(sName);
-        if (!s) return;
-        if (s.getLastRow() > 1) {
-          s.deleteRows(2, s.getLastRow() - 1);
-        }
-      });
-
-      // 페이지 데이터 작성 + 순서 기록
-      allPages.forEach((page, idx) => {
-        const pType = page.layoutType;
-        const sName = PAGE_TYPE_SHEETS[pType];
-        if (!sName) return;
-        const s = ss.getSheetByName(sName);
-        if (!s) return;
-        const rowValues = _objectToRow(pType, page);
-        s.appendRow(rowValues);
-        // PageOrder: only id, pageType, orderIndex (3 columns)
-        orderEntries.push([page.id, pType, idx]);
-      });
-
-      // PageOrder 시트 갱신 (3 columns only)
-      const pageOrderSheet = ss.getSheetByName('PageOrder');
-      if (pageOrderSheet) {
-        if (pageOrderSheet.getLastRow() > 1) {
-          pageOrderSheet.deleteRows(2, pageOrderSheet.getLastRow() - 1);
-        }
-        if (orderEntries.length > 0) {
-          pageOrderSheet.getRange(2, 1, orderEntries.length, 3).setValues(orderEntries);
-        }
-      }
-
-      // Metadata 저장 (26 columns)
-      if (data.metadata) {
-        const metadataSheet = ss.getSheetByName(SHEET_NAMES.metadata);
-        const marginStr = typeof data.metadata.margins === 'string' 
-          ? data.metadata.margins 
-          : JSON.stringify(data.metadata.margins);
-        
-        // Build 26-column array
-        const pageTypeNames = ['cover', 'toc', 'chapter', 'body', 'quote', 'sequence', 'header-body', 'blank'];
-        const metadataValues = [
-          data.metadata.title || '',
-          data.metadata.author || '',
-          data.metadata.theme || 'classic',
-          data.metadata.paperSize || 'a5',
-          marginStr,
-          data.metadata.fontFamily || 'Noto Serif KR',
-          data.metadata.fontSize || 10,
-          data.metadata.lineHeight || 1.65,
-          data.metadata.showCropMarks ? 'TRUE' : 'FALSE',
-          data.metadata.bleed || 3,
-        ];
-        
-        // Add page-type-specific settings (columns 10-25)
-        pageTypeNames.forEach((pageType) => {
-          const settings = data.metadata[`${pageType}_visibility`] || { showPageNumbers: true, showRunningHead: true };
-          metadataValues.push(settings.showPageNumbers ? 'TRUE' : 'FALSE');
-          metadataValues.push(settings.showRunningHead ? 'TRUE' : 'FALSE');
-        });
-        
-        metadataSheet.getRange(2, 1, 1, 26).setValues([metadataValues]);
-      }
-
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'success',
-        message: 'All pages synced'
-      }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // ===== PAGE CRUD =====
-    if (!PAGE_TYPE_SHEETS[pageType]) {
-      throw new Error(`Invalid pageType: ${pageType}`);
-    }
-
-    const sheet = ss.getSheetByName(PAGE_TYPE_SHEETS[pageType]);
-    if (!sheet) throw new Error(`Sheet not found: ${pageType}`);
-
-    // DELETE
-    if (action === 'delete' && rowIndex) {
-      sheet.deleteRow(parseInt(rowIndex));
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'success',
-        message: 'Page deleted'
-      }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // UPDATE
-    if (action === 'update' && rowIndex && data) {
-      const rowValues = _objectToRow(pageType, data);
-      sheet.getRange(parseInt(rowIndex), 1, 1, rowValues.length).setValues([rowValues]);
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'success',
-        message: 'Page updated'
-      }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // CREATE (SAVE)
-    if (action === 'save' && data) {
-      const rowValues = _objectToRow(pageType, data);
-      sheet.appendRow(rowValues);
-      
-      // PageOrder 시트에도 새 페이지 추가 (3 columns only)
-      const pageOrderSheet = ss.getSheetByName('PageOrder');
-      if (pageOrderSheet) {
-        const lastOrder = pageOrderSheet.getLastRow() - 1; // 헤더 제외
-        const maxOrder = Math.max(0, lastOrder);
-        pageOrderSheet.appendRow([data.id, pageType, maxOrder]);
-      }
-      
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'success',
-        message: 'Page created',
-        data: data
-      }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
-
-    throw new Error('Invalid action or missing parameters');
-
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'error',
-      message: err.toString()
-    }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
-}
-
-// ===== HELPER FUNCTIONS =====
-
-function _rowToObject(pageType, row, rowIndex) {
-  const obj = {
-    id: row[0] || `${pageType}-row-${rowIndex}`,
-    layoutType: pageType,
-  };
-
-  switch (pageType) {
-    case 'cover':
-      obj.title = row[1] || '';
-      obj.subtitle = row[2] || '';
-      obj.author = row[3] || '';
-      break;
-    case 'toc':
-      obj.title = row[1] || '';
-      try {
-        obj.tocEntries = row[2] ? JSON.parse(row[2]) : [];
-      } catch {
-        obj.tocEntries = [];
-      }
-      break;
-    case 'chapter':
-      obj.title = row[1] || '';
-      obj.subtitle = row[2] || '';
-      obj.content = row[3] || '';
-      break;
-    case 'sequence':
-      obj.title = row[1] || '';
-      obj.content = row[2] || '';
-      try {
-        obj.items = row[3] ? JSON.parse(row[3]) : [];
-      } catch {
-        obj.items = [];
-      }
-      break;
-    case 'body':
-      obj.content = row[1] || '';
-      break;
-    case 'blank':
-      obj.content = row[1] || '';
-      break;
-    case 'header-body':
-      obj.title = row[1] || '';
-      obj.content = row[2] || '';
-      break;
-    case 'quote':
-      obj.title = row[1] || '';
-      obj.content = row[2] || '';
-      break;
-  }
-
-  return obj;
-}
-
-function _objectToRow(pageType, obj) {
-  switch (pageType) {
-    case 'cover':
-      return [
-        obj.id || '',
-        obj.title || '',
-        obj.subtitle || '',
-        obj.author || ''
-      ];
-    case 'toc':
-      return [
-        obj.id || '',
-        obj.title || '',
-        obj.tocEntries ? JSON.stringify(obj.tocEntries) : '[]'
-      ];
-    case 'chapter':
-      return [
-        obj.id || '',
-        obj.title || '',
-        obj.subtitle || '',
-        obj.content || ''
-      ];
-    case 'sequence':
-      return [
-        obj.id || '',
-        obj.title || '',
-        obj.content || '',
-        obj.items ? JSON.stringify(obj.items) : '[]'
-      ];
-    case 'body':
-      return [
-        obj.id || '',
-        obj.content || ''
-      ];
-    case 'blank':
-      return [
-        obj.id || '',
-        obj.content || ''
-      ];
-    case 'header-body':
-      return [
-        obj.id || '',
-        obj.title || '',
-        obj.content || ''
-      ];
-    case 'quote':
-      return [
-        obj.id || '',
-        obj.title || '',
-        obj.content || ''
-      ];
-  }
-}
-
-// ===== PARSING HELPERS =====
-
-
-
-function _parseMargins(value) {
-  if (!value) return null;
-  try {
-    if (typeof value === 'string') {
-      return JSON.parse(value);
-    }
-    return value;
-  } catch {
-    return null;
-  }
-}
-
-function _parseNumber(value) {
-  if (value === null || value === undefined || value === '') return null;
-  const num = parseFloat(value);
-  return isNaN(num) ? null : num;
-}
-
-function _parseBoolean(value) {
-  if (value === null || value === undefined || value === '') return null;
-  if (typeof value === 'boolean') return value;
-  if (typeof value === 'string') {
-    return value.toLowerCase() === 'true' || value === '1';
-  }
-  return !!value;
-}
-</file>
-
-<file path="vite.config.ts">
-import tailwindcss from '@tailwindcss/vite';
-import react from '@vitejs/plugin-react';
-import path from 'path';
-import {defineConfig, loadEnv} from 'vite';
-
-export default defineConfig(({mode}) => {
-  const env = loadEnv(mode, '.', '');
-  return {
-    plugins: [react(), tailwindcss()],
-    define: {
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-    },
-    resolve: {
-      alias: {
-        '@': path.resolve(__dirname, '.'),
-      },
-    },
-    server: {
-      // HMR is disabled in AI Studio via DISABLE_HMR env var.
-      // Do not modifyâfile watching is disabled to prevent flickering during agent edits.
-      hmr: process.env.DISABLE_HMR !== 'true',
-      // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
-    },
-  };
-});
-</file>
-
-<file path="src/components/Calibration.tsx">
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useEffect } from 'react';
-import { CreditCard, Ruler, RotateCcw } from 'lucide-react';
-
-interface CalibrationProps {
-  scale: number;
-  onChangeScale: (newScale: number) => void;
-}
-
-export default function Calibration({ scale, onChangeScale }: CalibrationProps) {
-  // Constant measurements for a standard ID card in ISO/IEC 7810 ID-1: 85.6mm x 53.98mm
-  const CARD_WIDTH_MM = 85.6;
-  const CARD_HEIGHT_MM = 53.98;
-
-  const handleReset = () => {
-    onChangeScale(3);
-  };
-
-  // Convert scale to DPI for tech explanation
-  const currentDPL = Math.round(scale * 25.4);
-
-  return (
-    <div id="calibration-widget" className="rounded-2xl p-6 max-w-md w-full" style={{ backgroundColor: '#FDFAF6', border: '1px solid #E8E0D4' }}>
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2.5 rounded-xl" style={{ backgroundColor: '#F5F0E8', color: '#B5714A' }}>
-          <Ruler size={18} />
-        </div>
-        <div>
-          <h3 className="font-semibold text-sm" style={{ color: '#2A2420' }}>실물 크기 1:1 보정 (Calibration)</h3>
-          <p className="text-xs" style={{ color: '#7A6F66' }}>모니터 해상도별 실제 출력 크기 싱크 맞춰기</p>
-        </div>
-      </div>
-
-      <p className="text-xs leading-relaxed p-3.5 rounded-xl mb-6" style={{ backgroundColor: '#F5F0E8', color: '#7A6F66' }}>
-        화면에 <strong>신용카드</strong>나 <strong>신분증</strong>을 직접 대고, 아래 가이드 카드의 크기가 
-        실물 카드와 가로가 똑같아지도록 아래 슬라이더를 세밀하게 조절해 주세요. 완료되면 
-        화면의 책 크기가 <strong>실제 인쇄될 1:1 실물 크기</strong>로 표시됩니다!
-      </p>
-
-      {/* Interactive Card Canvas */}
-      <div className="relative flex justify-center py-6 rounded-2xl mb-6 overflow-hidden min-h-[180px] items-center" style={{ backgroundColor: 'rgba(42,36,32,0.05)' }}>
-        {/* Virtual Credit Card */}
-        <div 
-          style={{
-            width: `${CARD_WIDTH_MM * scale}px`,
-            height: `${CARD_HEIGHT_MM * scale}px`,
-            transition: 'width 0.1s ease-out, height 0.1s ease-out',
-          }}
-          className="relative bg-gradient-to-tr from-slate-800 via-indigo-950 to-slate-900 rounded-xl shadow-xl flex flex-col justify-between p-4 border border-white/15 text-white overflow-hidden select-none"
-        >
-          {/* Card Accent Grid */}
-          <div className="absolute inset-0 opacity-10 bg-[linear-gradient(to_right,#808080_1px,transparent_1px),linear-gradient(to_bottom,#808080_1px,transparent_1px)] bg-[size:14px_24px]" />
-          
-          <div className="flex justify-between items-start relative z-10">
-            <span className="text-[9px] tracking-wider text-slate-400 font-mono">CALIBRATION CARD</span>
-            <div className="w-8 h-6 bg-amber-400/90 rounded opacity-80" /> {/* Chip */}
-          </div>
-
-          <div className="relative z-10 my-1">
-            <div className="text-xs font-mono tracking-widest text-slate-300">•••• •••• •••• ••••</div>
-          </div>
-
-          <div className="flex justify-between items-end relative z-10">
-            <div className="flex flex-col">
-              <span className="text-[7px] text-slate-500 uppercase font-mono">Card Width</span>
-              <span className="text-[10px] font-mono font-medium text-indigo-200">85.60 mm</span>
-            </div>
-            <CreditCard size={18} className="text-slate-400 opacity-60" />
-          </div>
-        </div>
-      </div>
-
-      {/* Control Slider */}
-      <div className="space-y-4">
-        <div className="flex justify-between items-center text-xs font-medium" style={{ color: '#2A2420' }}>
-          <span>비율 조절 슬라이더</span>
-          <span className="font-mono px-2 py-0.5 rounded text-[11px]" style={{ backgroundColor: '#F5F0E8', color: '#B5714A' }}>
-            {scale.toFixed(2)} px/mm ({currentDPL} DPI)
-          </span>
-        </div>
-
-        <input
-          type="range"
-          min="2.0"
-          max="6.0"
-          step="0.01"
-          value={scale}
-          onChange={(e) => onChangeScale(parseFloat(e.target.value))}
-          className="w-full h-1.5 rounded-lg appearance-none cursor-ew-resize outline-none"
-          style={{ accentColor: '#B5714A', backgroundColor: '#E8E0D4' }}
-        />
-
-        <div className="flex justify-between items-center text-[10px] font-mono" style={{ color: '#B4A99E' }}>
-          <span>작은 모니터 (DPI 낮음)</span>
-          <span>큰 모니터/고정밀 (DPI 높음)</span>
-        </div>
-
-        <div className="pt-2 flex justify-end" style={{ borderTop: '1px solid #E8E0D4' }}>
-          <button
-            onClick={handleReset}
-            className="flex items-center gap-1.5 text-xs font-medium transition-colors cursor-pointer"
-            style={{ color: '#B4A99E' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = '#B5714A')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = '#B4A99E')}
-          >
-            <RotateCcw size={13} />
-            기본값 복원
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-</file>
-
-<file path="src/components/DocumentStructure.tsx">
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useState, useRef } from 'react';
-import { Book, Page, PageLayoutType } from '../types';
-import { Plus, Trash2 } from 'lucide-react';
-
-const TYPE_BADGE_LABEL: Record<PageLayoutType, string> = {
-  cover:       'COVER',
-  toc:         'TOC',
-  chapter:     'CHAPTER',
-  body:        'BODY',
-  blank:       'BLANK',
-  quote:       'QUOTE',
-  sequence:    'SEQUENCE',
-  'header-body':'HEADER-BODY',
-};
-
-const ADD_PAGE_TYPES: { type: PageLayoutType; label: string }[] = [
-  { type: 'body',       label: '본문 (BODY)' },
-  { type: 'blank',      label: '빈 페이지 (BLANK)' },
-  { type: 'chapter',    label: '챕터 제목 (CHAPTER)' },
-  { type: 'quote',      label: '인용구 (QUOTE)' },
-  { type: 'toc',        label: '목차 (TOC)' },
-  { type: 'sequence',   label: '시퀀스 (SEQUENCE)' },
-  { type: 'header-body', label: '제목+본문 (HEADER-BODY)' },
-];
-
-interface DocumentStructureProps {
-  book: Book;
-  selectedPageIndex: number;
-  onSelectPage: (index: number) => void;
-  onAddPage: (layoutType: PageLayoutType) => void;
-  onDeletePage: (pageId: string) => void;
-  onUpdatePageTitle?: (pageId: string, title: string) => void;
-  onReorderPages: (pages: Page[]) => void;
-  onUpdatePageType?: (pageId: string, layoutType: PageLayoutType) => void;
-}
-
-export default function DocumentStructure({
-  book,
-  selectedPageIndex,
-  onSelectPage,
-  onAddPage,
-  onDeletePage,
-  onUpdatePageTitle,
-  onReorderPages,
-  onUpdatePageType,
-}: DocumentStructureProps) {
-  const [selectedPageIdForTypeChange, setSelectedPageIdForTypeChange] = useState<string | null>(null);
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
-  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
-  const dragNodeRef = useRef<number | null>(null);
-
-  const handleDragStart = (e: React.DragEvent, idx: number) => {
-    dragNodeRef.current = idx;
-    setDraggedIdx(idx);
-    e.dataTransfer.effectAllowed = 'move';
-  };
-
-  const handleDragOver = (e: React.DragEvent, idx: number) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = 'move';
-    if (dragOverIdx !== idx) setDragOverIdx(idx);
-  };
-
-  const handleDrop = (e: React.DragEvent, dropIdx: number) => {
-    e.preventDefault();
-    const fromIdx = dragNodeRef.current;
-    if (fromIdx === null || fromIdx === dropIdx) return;
-
-    const pages = [...book.pages];
-    const [moved] = pages.splice(fromIdx, 1);
-    pages.splice(dropIdx, 0, moved);
-    onReorderPages(pages);
-
-    // Update selected index to follow the moved page
-    if (selectedPageIndex === fromIdx) {
-      onSelectPage(dropIdx);
-    } else if (fromIdx < dropIdx && selectedPageIndex > fromIdx && selectedPageIndex <= dropIdx) {
-      onSelectPage(selectedPageIndex - 1);
-    } else if (fromIdx > dropIdx && selectedPageIndex >= dropIdx && selectedPageIndex < fromIdx) {
-      onSelectPage(selectedPageIndex + 1);
-    }
-
-    setDraggedIdx(null);
-    setDragOverIdx(null);
-    dragNodeRef.current = null;
-  };
-
-  const handleDragEnd = () => {
-    setDraggedIdx(null);
-    setDragOverIdx(null);
-    dragNodeRef.current = null;
-  };
-
-  return (
-    <div
-      className="flex flex-col h-full no-print shrink-0"
-      style={{ width: '280px', minWidth: '280px', backgroundColor: '#2C261F' }}
-    >
-      {/* Header */}
-      <div
-        className="px-4 py-3 flex items-center justify-between shrink-0"
-        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
-      >
-        <span
-          className="text-[9px] font-bold tracking-widest"
-          style={{ color: 'rgba(255,255,255,0.2)' }}
-        >
-          DOCUMENT STRUCTURE
-        </span>
-        <button
-          onClick={() => onAddPage('blank')}
-          className="p-1.5 rounded-lg transition-colors cursor-pointer"
-          style={{ color: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.05)' }}
-          title="빈 페이지 추가 (BLANK)"
-        >
-          <Plus size={14} />
-        </button>
-      </div>
-
-      {/* Page List */}
-      <div className="flex-1 overflow-y-auto scrollbar-thin">
-        {book.pages.map((page, idx) => {
-          const isSelected = idx === selectedPageIndex;
-          const isHovered = hoveredIdx === idx;
-          const isDragging = draggedIdx === idx;
-          const isDragOver = dragOverIdx === idx && draggedIdx !== idx;
-          const displayTitle = page.title || '(제목없음)';
-          const badge = TYPE_BADGE_LABEL[page.layoutType];
-
-          return (
-            <div
-              key={page.id}
-              draggable
-              onDragStart={(e) => handleDragStart(e, idx)}
-              onDragOver={(e) => handleDragOver(e, idx)}
-              onDrop={(e) => handleDrop(e, idx)}
-              onDragEnd={handleDragEnd}
-              onClick={() => onSelectPage(idx)}
-              onMouseEnter={() => setHoveredIdx(idx)}
-              onMouseLeave={() => setHoveredIdx(null)}
-              className="flex items-center px-4 py-3 cursor-pointer transition-colors select-none group relative"
-              style={{
-                backgroundColor: isDragging
-                  ? 'rgba(0,0,0,0.1)'
-                  : isSelected
-                  ? '#1F1B17'
-                  : isHovered
-                  ? 'rgba(255,255,255,0.03)'
-                  : 'transparent',
-                opacity: isDragging ? 0.5 : 1,
-                borderLeft: isSelected ? '3px solid #B5714A' : '3px solid transparent',
-                paddingLeft: 'calc(1rem - 3px)',
-                minHeight: '44px',
-                gap: '8px',
-              }}
-            >
-              {/* Number */}
-              <span
-                className="font-mono text-[12px] font-bold shrink-0"
-                style={{ color: isSelected ? '#B5714A' : 'rgba(255,255,255,0.25)' }}
-              >
-                {String(idx + 1).padStart(2, '0')}
-              </span>
-
-              {/* Title */}
-              {isSelected && page.layoutType !== 'body' ? (
-                <input
-                  type="text"
-                  value={page.title || ''}
-                  onChange={(e) => onUpdatePageTitle?.(page.id, e.target.value)}
-                  placeholder="제목 입력..."
-                  className="flex-1 bg-transparent outline-none text-[12px] font-medium min-w-0"
-                  style={{ color: '#FFE0C0' }}
-                  onClick={(e) => e.stopPropagation()}
-                />
-              ) : (
-                <span
-                  className="flex-1 text-[12px] font-medium truncate"
-                  style={{ color: isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.45)' }}
-                >
-                  {displayTitle}
-                </span>
-              )}
-
-              {/* Delete button (Show only on hover) */}
-              {isHovered && !isSelected && book.pages.length > 1 && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDeletePage(page.id); }}
-                  className="shrink-0 cursor-pointer transition-colors p-1 flex items-center justify-center rounded"
-                  style={{ color: 'rgba(255,80,80,0.7)', height: '24px', width: '24px' }}
-                  title="페이지 삭제"
-                >
-                  <Trash2 size={14} />
-                </button>
-              )}
-
-              {/* Badge (Always visible) */}
-              <div className="relative inline-block shrink-0">
-                <button
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    setSelectedPageIdForTypeChange(selectedPageIdForTypeChange === page.id ? null : page.id);
-                  }}
-                  className="text-[9px] px-2 py-1 rounded transition-colors cursor-pointer h-6 flex items-center"
-                  style={{
-                    backgroundColor: isSelected ? 'rgba(181,113,74,0.3)' : 'rgba(255,255,255,0.15)',
-                    color: isSelected ? '#FFE0C0' : '#FFFFFF',
-                  }}
-                  title="타입 변경"
-                >
-                  {badge}
-                </button>
-
-                {/* Type change dropdown */}
-                {selectedPageIdForTypeChange === page.id && (
-                  <div
-                    className="absolute right-0 top-full mt-1 z-50 rounded-lg overflow-hidden shadow-2xl"
-                    style={{ backgroundColor: '#3D3530', border: '1px solid rgba(255,255,255,0.08)' }}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {ADD_PAGE_TYPES.map(({ type, label }) => (
-                      <button
-                        key={type}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onUpdatePageType?.(page.id, type);
-                          setSelectedPageIdForTypeChange(null);
-                        }}
-                        className="w-full text-left px-3 py-2 text-[10px] font-medium transition-colors cursor-pointer"
-                        style={{ 
-                          color: 'rgba(255,255,255,0.7)',
-                          backgroundColor: page.layoutType === type ? 'rgba(181,113,74,0.3)' : 'transparent',
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)')}
-                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = page.layoutType === type ? 'rgba(181,113,74,0.3)' : 'transparent')}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-</file>
-
-<file path="src/components/PrintSurface.tsx">
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React, { useEffect } from 'react';
-import { Book, PrintSettings, PRESET_PAPER_SIZES } from '../types';
-import PageRenderer from './PageRenderer';
-import type { PaperTheme } from './BookSpreadReader';
-
-interface PrintSurfaceProps {
-  book: Book;
-  settings: PrintSettings;
-  paperTheme?: PaperTheme;
-}
-
-export default function PrintSurface({ book, settings, paperTheme = 'white' }: PrintSurfaceProps) {
-  const paperSize = PRESET_PAPER_SIZES.find((p) => p.id === settings.paperSizeId) || PRESET_PAPER_SIZES[0];
-
-  // Dynamic print size CSS variables synchronization
-  useEffect(() => {
-    const root = document.documentElement;
-    root.style.setProperty('--print-paper-width', `${paperSize.width}mm`);
-    root.style.setProperty('--print-paper-height', `${paperSize.height}mm`);
-    
-    return () => {
-      root.style.removeProperty('--print-paper-width');
-      root.style.removeProperty('--print-paper-height');
-    };
-  }, [paperSize.width, paperSize.height]);
-
-  return (
-    <div id="print-book-surface">
-      {book.pages.map((page, index) => (
-        <React.Fragment key={page.id}>
-        <PageRenderer
-          page={page}
-          pageIndex={index}
-          isRightPage={index % 2 === 0}
-          book={book}
-          settings={settings}
-          mode="print"
-          paperTheme={paperTheme}
-        />
-        </React.Fragment>
-      ))}
-    </div>
-  );
-}
-</file>
-
 <file path="src/index.css">
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+KR:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400..700;1,400..700&family=Fira+Code:wght@400;500&display=swap');
 @import "tailwindcss";
@@ -3275,7 +2746,7 @@ export default function PrintSurface({ book, settings, paperTheme = 'white' }: P
   --animate-fade-in: fade-in 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   --animate-slide-up: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 
-  /* ── PRESLY Beige Design System ── */
+  /* ── Vivia Beige Design System ── */
   --color-beige-50:  #FDFAF6;
   --color-beige-100: #F5F0E8;
   --color-beige-200: #E8E0D4;
@@ -3461,6 +2932,864 @@ input[type="range"]::-moz-range-thumb {
 }
 </file>
 
+<file path="GAS_SCRIPT.gs">
+// ====== Google Apps Script for e-book-artisan ======
+// Deploy as Web App: Execute as Me, Anyone can access
+
+const SPREADSHEET_ID = SpreadsheetApp.getActiveSpreadsheet().getId();
+const SHEET_NAMES = {
+  metadata: 'Metadata',
+  cover: 'Cover',
+  toc: 'TOC',
+  chapter: 'Chapter',
+  sequence: 'Sequence',
+  body: 'Body',
+  blank: 'Blank',
+  headerBody: 'Header-Body',
+  quote: 'Quote'
+};
+
+// 기본값은 Metadata 시트에서 페이지 타입별로 관리됨
+
+const PAGE_TYPE_SHEETS = {
+  'cover': 'Cover',
+  'toc': 'TOC',
+  'chapter': 'Chapter',
+  'sequence': 'Sequence',
+  'header-body': 'Header-Body',
+  'blank': 'Blank',
+  'body': 'Body',
+  'quote': 'Quote'
+};
+
+function doGet(e) {
+  try {
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+    const sheets = {};
+    
+    // 모든 시트를 한 번에 가져오기
+    ss.getSheets().forEach(s => { sheets[s.getName()] = s; });
+    
+    // Load Metadata (27 columns: 11 base + 16 page-type-specific)
+    const metadataSheet = sheets[SHEET_NAMES.metadata];
+    const metadataRow = metadataSheet.getRange(2, 1, 1, 27).getValues()[0];
+    const metadata = {
+      title: metadataRow[0] || '',
+      subtitle: metadataRow[1] || '',
+      author: metadataRow[2] || '',
+      theme: metadataRow[3] || 'classic',
+      paperSize: metadataRow[4] || 'a5',
+      margins: _parseMargins(metadataRow[5]) || { top: 21, bottom: 21, inner: 21, outer: 15 },
+      fontFamily: metadataRow[6] || 'Noto Serif KR',
+      fontSize: _parseNumber(metadataRow[7]) || 10,
+      lineHeight: _parseNumber(metadataRow[8]) || 1.65,
+      showCropMarks: _parseBoolean(metadataRow[9]) ?? true,
+      bleed: _parseNumber(metadataRow[10]) || 3,
+    };
+
+    // Page type-specific visibility settings (from metadata columns 11-26)
+    const pageTypeNames = ['cover', 'toc', 'chapter', 'body', 'quote', 'sequence', 'header-body', 'blank'];
+    const pageTypeVisibility = {};
+    pageTypeNames.forEach((pageType, idx) => {
+      const baseCol = 11 + (idx * 2);
+      pageTypeVisibility[pageType] = {
+        showPageNumbers: _parseBoolean(metadataRow[baseCol]) ?? true,
+        showRunningHead: _parseBoolean(metadataRow[baseCol + 1]) ?? true,
+      };
+    });
+    
+    // Add pageTypeVisibility to metadata for frontend
+    metadata.pageTypeVisibility = pageTypeVisibility;
+
+    // Load PageOrder (id, pageType, orderIndex only - 3 columns)
+    const pageOrderMap = {};
+    const pageOrderSheet = sheets['PageOrder'];
+    if (pageOrderSheet && pageOrderSheet.getLastRow() > 1) {
+      const orderData = pageOrderSheet.getRange(2, 1, pageOrderSheet.getLastRow() - 1, 3).getValues();
+      for (let i = 0; i < orderData.length; i++) {
+        if (orderData[i][0]) {
+          pageOrderMap[orderData[i][0]] = {
+            order: orderData[i][2] !== '' ? orderData[i][2] : i,
+            pageType: orderData[i][1],
+          };
+        }
+      }
+    }
+
+    // Load all pages from each PageType sheet
+    let pages = [];
+    
+    Object.entries(PAGE_TYPE_SHEETS).forEach(([pageType, sheetName]) => {
+      const sheet = sheets[sheetName];
+      if (!sheet || sheet.getLastRow() <= 1) return;
+      
+      const data = sheet.getRange(2, 1, sheet.getLastRow() - 1, sheet.getLastColumn()).getValues();
+      
+      for (let i = 0; i < data.length; i++) {
+        const row = data[i];
+        if (!row[0] || row[0].toString().trim() === '') continue;
+        
+        const pageData = _rowToObject(pageType, row, i + 2);
+        
+        pages.push(pageData);
+      }
+    });
+
+    // PageOrder 기준으로 정렬
+    pages.sort((a, b) => {
+      const orderA = pageOrderMap[a.id]?.order ?? 999;
+      const orderB = pageOrderMap[b.id]?.order ?? 999;
+      return orderA - orderB;
+    });
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
+      metadata: metadata,
+      pages: pages
+    }))
+      .setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: err.toString()
+    }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doPost(e) {
+  try {
+    // 요청 파싱
+    let params;
+    if (e.postData && e.postData.contents) {
+      params = JSON.parse(e.postData.contents);
+    } else {
+      throw new Error('No POST data received');
+    }
+    
+    const { action, pageType, rowIndex, data } = params;
+    const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+    // ===== METADATA UPDATE =====
+    if (action === 'updateMetadata') {
+      const metadataSheet = ss.getSheetByName(SHEET_NAMES.metadata);
+      const marginStr = typeof data.metadata.margins === 'string' 
+        ? data.metadata.margins 
+        : JSON.stringify(data.metadata.margins);
+      
+      // Build 27-column array
+      const pageTypeNames = ['cover', 'toc', 'chapter', 'body', 'quote', 'sequence', 'header-body', 'blank'];
+      const metadataValues = [
+        data.metadata.title || '',
+        data.metadata.subtitle || '',
+        data.metadata.author || '',
+        data.metadata.theme || 'classic',
+        data.metadata.paperSize || 'a5',
+        marginStr,
+        data.metadata.fontFamily || 'Noto Serif KR',
+        data.metadata.fontSize || 10,
+        data.metadata.lineHeight || 1.65,
+        data.metadata.showCropMarks ? 'TRUE' : 'FALSE',
+        data.metadata.bleed || 3,
+      ];
+      
+      // Add page-type-specific settings (columns 11-26)
+      const pageTypeVisibility = data.metadata.pageTypeVisibility || {};
+      pageTypeNames.forEach((pageType) => {
+        const settings = pageTypeVisibility[pageType] || { showPageNumbers: true, showRunningHead: true };
+        metadataValues.push(settings.showPageNumbers ? 'TRUE' : 'FALSE');
+        metadataValues.push(settings.showRunningHead ? 'TRUE' : 'FALSE');
+      });
+      
+      metadataSheet.getRange(2, 1, 1, 27).setValues([metadataValues]);
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'success',
+        message: 'Metadata updated'
+      }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ===== SYNC ALL (전체 동기화) =====
+    if (action === 'syncAll') {
+      const allPages = data.pages || [];
+      const orderEntries = [];
+
+      // 각 시트의 기존 데이터 삭제 후 새로 작성
+      Object.entries(PAGE_TYPE_SHEETS).forEach(([pType, sName]) => {
+        const s = ss.getSheetByName(sName);
+        if (!s) return;
+        if (s.getLastRow() > 1) {
+          s.deleteRows(2, s.getLastRow() - 1);
+        }
+      });
+
+      // 페이지 데이터 작성 + 순서 기록
+      allPages.forEach((page, idx) => {
+        const pType = page.layoutType;
+        const sName = PAGE_TYPE_SHEETS[pType];
+        if (!sName) return;
+        const s = ss.getSheetByName(sName);
+        if (!s) return;
+        const rowValues = _objectToRow(pType, page);
+        s.appendRow(rowValues);
+        // PageOrder: only id, pageType, orderIndex (3 columns)
+        orderEntries.push([page.id, pType, idx]);
+      });
+
+      // PageOrder 시트 갱신 (3 columns only)
+      const pageOrderSheet = ss.getSheetByName('PageOrder');
+      if (pageOrderSheet) {
+        if (pageOrderSheet.getLastRow() > 1) {
+          pageOrderSheet.deleteRows(2, pageOrderSheet.getLastRow() - 1);
+        }
+        if (orderEntries.length > 0) {
+          pageOrderSheet.getRange(2, 1, orderEntries.length, 3).setValues(orderEntries);
+        }
+      }
+
+      // Metadata 저장 (27 columns)
+      if (data.metadata) {
+        const metadataSheet = ss.getSheetByName(SHEET_NAMES.metadata);
+        const marginStr = typeof data.metadata.margins === 'string' 
+          ? data.metadata.margins 
+          : JSON.stringify(data.metadata.margins);
+        
+        // Build 27-column array
+        const pageTypeNames = ['cover', 'toc', 'chapter', 'body', 'quote', 'sequence', 'header-body', 'blank'];
+        const metadataValues = [
+          data.metadata.title || '',
+          data.metadata.subtitle || '',
+          data.metadata.author || '',
+          data.metadata.theme || 'classic',
+          data.metadata.paperSize || 'a5',
+          marginStr,
+          data.metadata.fontFamily || 'Noto Serif KR',
+          data.metadata.fontSize || 10,
+          data.metadata.lineHeight || 1.65,
+          data.metadata.showCropMarks ? 'TRUE' : 'FALSE',
+          data.metadata.bleed || 3,
+        ];
+        
+        // Add page-type-specific settings (columns 11-26)
+        const pageTypeVisibility = data.metadata.pageTypeVisibility || {};
+        pageTypeNames.forEach((pageType) => {
+          const settings = pageTypeVisibility[pageType] || { showPageNumbers: true, showRunningHead: true };
+          metadataValues.push(settings.showPageNumbers ? 'TRUE' : 'FALSE');
+          metadataValues.push(settings.showRunningHead ? 'TRUE' : 'FALSE');
+        });
+        
+        metadataSheet.getRange(2, 1, 1, 27).setValues([metadataValues]);
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'success',
+        message: 'All pages synced'
+      }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ===== PAGE CRUD =====
+    if (!PAGE_TYPE_SHEETS[pageType]) {
+      throw new Error(`Invalid pageType: ${pageType}`);
+    }
+
+    const sheet = ss.getSheetByName(PAGE_TYPE_SHEETS[pageType]);
+    if (!sheet) throw new Error(`Sheet not found: ${pageType}`);
+
+    // DELETE
+    if (action === 'delete' && rowIndex) {
+      sheet.deleteRow(parseInt(rowIndex));
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'success',
+        message: 'Page deleted'
+      }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // UPDATE
+    if (action === 'update' && rowIndex && data) {
+      const rowValues = _objectToRow(pageType, data);
+      sheet.getRange(parseInt(rowIndex), 1, 1, rowValues.length).setValues([rowValues]);
+      
+      // Cover 업데이트 시 메타데이터도 동시 업데이트
+      if (pageType === 'cover') {
+        const metadataSheet = ss.getSheetByName(SHEET_NAMES.metadata);
+        const metadataRow = metadataSheet.getRange(2, 1, 1, 27).getValues()[0];
+        metadataRow[0] = data.title || metadataRow[0];     // title
+        metadataRow[1] = data.subtitle || metadataRow[1];   // subtitle
+        metadataRow[2] = data.author || metadataRow[2];     // author
+        metadataSheet.getRange(2, 1, 1, 27).setValues([metadataRow]);
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'success',
+        message: 'Page updated'
+      }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // CREATE (SAVE)
+    if (action === 'save' && data) {
+      const rowValues = _objectToRow(pageType, data);
+      sheet.appendRow(rowValues);
+      
+      // Cover 생성 시 메타데이터도 동시 업데이트
+      if (pageType === 'cover') {
+        const metadataSheet = ss.getSheetByName(SHEET_NAMES.metadata);
+        const metadataRow = metadataSheet.getRange(2, 1, 1, 27).getValues()[0];
+        metadataRow[0] = data.title || metadataRow[0];     // title
+        metadataRow[1] = data.subtitle || metadataRow[1];   // subtitle
+        metadataRow[2] = data.author || metadataRow[2];     // author
+        metadataSheet.getRange(2, 1, 1, 27).setValues([metadataRow]);
+      }
+      
+      // PageOrder 시트에도 새 페이지 추가 (3 columns only)
+      const pageOrderSheet = ss.getSheetByName('PageOrder');
+      if (pageOrderSheet) {
+        const lastOrder = pageOrderSheet.getLastRow() - 1; // 헤더 제외
+        const maxOrder = Math.max(0, lastOrder);
+        pageOrderSheet.appendRow([data.id, pageType, maxOrder]);
+      }
+      
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'success',
+        message: 'Page created',
+        data: data
+      }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    throw new Error('Invalid action or missing parameters');
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: err.toString()
+    }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+// ===== HELPER FUNCTIONS =====
+
+function _rowToObject(pageType, row, rowIndex) {
+  const obj = {
+    id: row[0] || `${pageType}-row-${rowIndex}`,
+    layoutType: pageType,
+  };
+
+  switch (pageType) {
+    case 'cover':
+      obj.title = row[1] || '';
+      obj.subtitle = row[2] || '';
+      obj.author = row[3] || '';
+      break;
+    case 'toc':
+      obj.title = row[1] || '';
+      try {
+        obj.tocEntries = row[2] ? JSON.parse(row[2]) : [];
+      } catch {
+        obj.tocEntries = [];
+      }
+      break;
+    case 'chapter':
+      obj.title = row[1] || '';
+      obj.subtitle = row[2] || '';
+      obj.content = row[3] || '';
+      break;
+    case 'sequence':
+      obj.title = row[1] || '';
+      obj.content = row[2] || '';
+      try {
+        obj.items = row[3] ? JSON.parse(row[3]) : [];
+      } catch {
+        obj.items = [];
+      }
+      break;
+    case 'body':
+      obj.content = row[1] || '';
+      break;
+    case 'blank':
+      obj.content = row[1] || '';
+      break;
+    case 'header-body':
+      obj.title = row[1] || '';
+      obj.content = row[2] || '';
+      break;
+    case 'quote':
+      obj.title = row[1] || '';
+      obj.content = row[2] || '';
+      break;
+  }
+
+  return obj;
+}
+
+function _objectToRow(pageType, obj) {
+  switch (pageType) {
+    case 'cover':
+      return [
+        obj.id || '',
+        obj.title || '',
+        obj.subtitle || '',
+        obj.author || ''
+      ];
+    case 'toc':
+      return [
+        obj.id || '',
+        obj.title || '',
+        obj.tocEntries ? JSON.stringify(obj.tocEntries) : '[]'
+      ];
+    case 'chapter':
+      return [
+        obj.id || '',
+        obj.title || '',
+        obj.subtitle || '',
+        obj.content || ''
+      ];
+    case 'sequence':
+      return [
+        obj.id || '',
+        obj.title || '',
+        obj.content || '',
+        obj.items ? JSON.stringify(obj.items) : '[]'
+      ];
+    case 'body':
+      return [
+        obj.id || '',
+        obj.content || ''
+      ];
+    case 'blank':
+      return [
+        obj.id || '',
+        obj.content || ''
+      ];
+    case 'header-body':
+      return [
+        obj.id || '',
+        obj.title || '',
+        obj.content || ''
+      ];
+    case 'quote':
+      return [
+        obj.id || '',
+        obj.title || '',
+        obj.content || ''
+      ];
+  }
+}
+
+// ===== PARSING HELPERS =====
+
+
+
+function _parseMargins(value) {
+  if (!value) return null;
+  try {
+    if (typeof value === 'string') {
+      return JSON.parse(value);
+    }
+    return value;
+  } catch {
+    return null;
+  }
+}
+
+function _parseNumber(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const num = parseFloat(value);
+  return isNaN(num) ? null : num;
+}
+
+function _parseBoolean(value) {
+  if (value === null || value === undefined || value === '') return null;
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    return value.toLowerCase() === 'true' || value === '1';
+  }
+  return !!value;
+}
+</file>
+
+<file path="src/components/DocumentStructure.tsx">
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useState, useRef } from 'react';
+import { Book, Page, PageLayoutType } from '../types';
+import { Plus, Trash2, RotateCcw, RotateCw } from 'lucide-react';
+
+const TYPE_BADGE_LABEL: Record<PageLayoutType, string> = {
+  cover:       'COVER',
+  toc:         'TOC',
+  chapter:     'CHAPTER',
+  body:        'BODY',
+  blank:       'BLANK',
+  quote:       'QUOTE',
+  sequence:    'SEQUENCE',
+  'header-body':'HEADER-BODY',
+};
+
+const ADD_PAGE_TYPES: { type: PageLayoutType; label: string }[] = [
+  { type: 'body',       label: '본문 (BODY)' },
+  { type: 'blank',      label: '빈 페이지 (BLANK)' },
+  { type: 'chapter',    label: '챕터 제목 (CHAPTER)' },
+  { type: 'quote',      label: '인용구 (QUOTE)' },
+  { type: 'toc',        label: '목차 (TOC)' },
+  { type: 'sequence',   label: '시퀀스 (SEQUENCE)' },
+  { type: 'header-body', label: '제목+본문 (HEADER-BODY)' },
+];
+
+interface DocumentStructureProps {
+  book: Book;
+  selectedPageIndex: number;
+  onSelectPage: (index: number) => void;
+  onAddPage: (layoutType: PageLayoutType) => void;
+  onDeletePage: (pageId: string) => void;
+  onUpdatePageTitle?: (pageId: string, title: string) => void;
+  onReorderPages: (pages: Page[]) => void;
+  onUpdatePageType?: (pageId: string, layoutType: PageLayoutType) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
+}
+
+export default function DocumentStructure({
+  book,
+  selectedPageIndex,
+  onSelectPage,
+  onAddPage,
+  onDeletePage,
+  onUpdatePageTitle,
+  onReorderPages,
+  onUpdatePageType,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+}: DocumentStructureProps) {
+  const [selectedPageIdForTypeChange, setSelectedPageIdForTypeChange] = useState<string | null>(null);
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [draggedIdx, setDraggedIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
+  const dragNodeRef = useRef<number | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, idx: number) => {
+    dragNodeRef.current = idx;
+    setDraggedIdx(idx);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (dragOverIdx !== idx) setDragOverIdx(idx);
+  };
+
+  const handleDrop = (e: React.DragEvent, dropIdx: number) => {
+    e.preventDefault();
+    const fromIdx = dragNodeRef.current;
+    if (fromIdx === null || fromIdx === dropIdx) return;
+
+    const pages = [...book.pages];
+    const [moved] = pages.splice(fromIdx, 1);
+    pages.splice(dropIdx, 0, moved);
+    onReorderPages(pages);
+
+    // Update selected index to follow the moved page
+    if (selectedPageIndex === fromIdx) {
+      onSelectPage(dropIdx);
+    } else if (fromIdx < dropIdx && selectedPageIndex > fromIdx && selectedPageIndex <= dropIdx) {
+      onSelectPage(selectedPageIndex - 1);
+    } else if (fromIdx > dropIdx && selectedPageIndex >= dropIdx && selectedPageIndex < fromIdx) {
+      onSelectPage(selectedPageIndex + 1);
+    }
+
+    setDraggedIdx(null);
+    setDragOverIdx(null);
+    dragNodeRef.current = null;
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIdx(null);
+    setDragOverIdx(null);
+    dragNodeRef.current = null;
+  };
+
+  return (
+    <div
+      className="flex flex-col h-full no-print shrink-0"
+      style={{ width: '280px', minWidth: '280px', backgroundColor: '#2C261F' }}
+    >
+      {/* Header */}
+      <div
+        className="px-4 py-3 flex items-center justify-between shrink-0"
+        style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}
+      >
+        <span
+          className="text-[9px] font-bold tracking-widest"
+          style={{ color: 'rgba(255,255,255,0.2)' }}
+        >
+          DOCUMENT STRUCTURE
+        </span>
+        <div className="flex items-center gap-1">
+          {/* Undo Button */}
+          <button
+            onClick={onUndo}
+            disabled={!canUndo}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer"
+            style={{
+              color: canUndo ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)',
+              backgroundColor: canUndo ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+              opacity: canUndo ? 1 : 0.5,
+              cursor: canUndo ? 'pointer' : 'not-allowed',
+            }}
+            title={canUndo ? '실행취소 (Undo)' : '실행취소 불가'}
+          >
+            <RotateCcw size={14} />
+          </button>
+          
+          {/* Redo Button */}
+          <button
+            onClick={onRedo}
+            disabled={!canRedo}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer"
+            style={{
+              color: canRedo ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.2)',
+              backgroundColor: canRedo ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.02)',
+              opacity: canRedo ? 1 : 0.5,
+              cursor: canRedo ? 'pointer' : 'not-allowed',
+            }}
+            title={canRedo ? '다시실행 (Redo)' : '다시실행 불가'}
+          >
+            <RotateCw size={14} />
+          </button>
+
+          {/* Add Page Button */}
+          <button
+            onClick={() => onAddPage('blank')}
+            className="p-1.5 rounded-lg transition-colors cursor-pointer"
+            style={{ color: 'rgba(255,255,255,0.5)', backgroundColor: 'rgba(255,255,255,0.05)' }}
+            title="빈 페이지 추가 (BLANK)"
+          >
+            <Plus size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* Page List */}
+      <div className="flex-1 overflow-y-auto scrollbar-thin">
+        {book.pages.map((page, idx) => {
+          const isSelected = idx === selectedPageIndex;
+          const isHovered = hoveredIdx === idx;
+          const isDragging = draggedIdx === idx;
+          const isDragOver = dragOverIdx === idx && draggedIdx !== idx;
+          const displayTitle = page.title || '(제목없음)';
+          const badge = TYPE_BADGE_LABEL[page.layoutType];
+
+          return (
+            <div
+              key={page.id}
+              draggable
+              onDragStart={(e) => handleDragStart(e, idx)}
+              onDragOver={(e) => handleDragOver(e, idx)}
+              onDrop={(e) => handleDrop(e, idx)}
+              onDragEnd={handleDragEnd}
+              onClick={() => onSelectPage(idx)}
+              onMouseEnter={() => setHoveredIdx(idx)}
+              onMouseLeave={() => setHoveredIdx(null)}
+              className="flex items-center px-4 py-3 cursor-move transition-all select-none group relative"
+              style={{
+                backgroundColor: isDragOver
+                  ? 'rgba(181, 113, 74, 0.4)'
+                  : isDragging
+                  ? 'rgba(255, 255, 255, 0.08)'
+                  : isSelected
+                  ? '#1F1B17'
+                  : isHovered
+                  ? 'rgba(255,255,255,0.05)'
+                  : 'transparent',
+                opacity: isDragging ? 0.7 : 1,
+                borderLeft: isDragOver
+                  ? '3px solid #FFB366'
+                  : isSelected
+                  ? '3px solid #B5714A'
+                  : '3px solid transparent',
+                borderTop: isDragOver ? '2px solid rgba(181, 113, 74, 0.6)' : 'none',
+                paddingLeft: 'calc(1rem - 3px)',
+                minHeight: '44px',
+                gap: '8px',
+                cursor: isDragging ? 'grabbing' : 'grab',
+              }}
+            >
+              {/* Number */}
+              <span
+                className="font-mono text-[12px] font-bold shrink-0"
+                style={{ color: isSelected ? '#B5714A' : 'rgba(255,255,255,0.25)' }}
+              >
+                {String(idx + 1).padStart(2, '0')}
+              </span>
+
+              {/* Title */}
+              {isSelected && page.layoutType !== 'body' ? (
+                <input
+                  type="text"
+                  value={page.title || ''}
+                  onChange={(e) => onUpdatePageTitle?.(page.id, e.target.value)}
+                  placeholder="제목 입력..."
+                  className="flex-1 bg-transparent outline-none text-[12px] font-medium min-w-0"
+                  style={{ color: '#FFE0C0' }}
+                  onClick={(e) => e.stopPropagation()}
+                />
+              ) : (
+                <span
+                  className="flex-1 text-[12px] font-medium truncate"
+                  style={{ color: isSelected ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.45)' }}
+                >
+                  {displayTitle}
+                </span>
+              )}
+
+              {/* Delete button (Show only on hover) */}
+              {isHovered && !isSelected && book.pages.length > 1 && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); onDeletePage(page.id); }}
+                  className="shrink-0 cursor-pointer transition-colors p-1 flex items-center justify-center rounded"
+                  style={{ color: 'rgba(255,80,80,0.7)', height: '24px', width: '24px' }}
+                  title="페이지 삭제"
+                >
+                  <Trash2 size={14} />
+                </button>
+              )}
+
+              {/* Badge (Always visible) */}
+              <div className="relative inline-block shrink-0">
+                <button
+                  onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setSelectedPageIdForTypeChange(selectedPageIdForTypeChange === page.id ? null : page.id);
+                  }}
+                  className="text-[9px] px-2 py-1 rounded transition-colors cursor-pointer h-6 flex items-center"
+                  style={{
+                    backgroundColor: isSelected ? 'rgba(181,113,74,0.3)' : 'rgba(255,255,255,0.15)',
+                    color: isSelected ? '#FFE0C0' : '#FFFFFF',
+                  }}
+                  title="타입 변경"
+                >
+                  {badge}
+                </button>
+
+                {/* Type change dropdown */}
+                {selectedPageIdForTypeChange === page.id && (
+                  <div
+                    className="absolute right-0 top-full mt-1 z-50 rounded-lg overflow-hidden shadow-2xl"
+                    style={{ backgroundColor: '#3D3530', border: '1px solid rgba(255,255,255,0.08)' }}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {ADD_PAGE_TYPES.map(({ type, label }) => (
+                      <button
+                        key={type}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onUpdatePageType?.(page.id, type);
+                          setSelectedPageIdForTypeChange(null);
+                        }}
+                        className="w-full text-left px-3 py-2 text-[10px] font-medium transition-colors cursor-pointer"
+                        style={{ 
+                          color: 'rgba(255,255,255,0.7)',
+                          backgroundColor: page.layoutType === type ? 'rgba(181,113,74,0.3)' : 'transparent',
+                        }}
+                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.07)')}
+                        onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = page.layoutType === type ? 'rgba(181,113,74,0.3)' : 'transparent')}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/PrintSurface.tsx">
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React, { useEffect } from 'react';
+import { Book, PrintSettings, PRESET_PAPER_SIZES } from '../types';
+import PageRenderer from './PageRenderer';
+import type { PaperTheme } from './BookSpreadReader';
+
+interface PrintSurfaceProps {
+  book: Book;
+  settings: PrintSettings;
+  paperTheme?: PaperTheme;
+}
+
+export default function PrintSurface({ book, settings, paperTheme = 'white' }: PrintSurfaceProps) {
+  const paperSize = PRESET_PAPER_SIZES.find((p) => p.id === settings.paperSizeId) || PRESET_PAPER_SIZES[0];
+
+  // Dynamic print size CSS variables synchronization
+  useEffect(() => {
+    const root = document.documentElement;
+    root.style.setProperty('--print-paper-width', `${paperSize.width}mm`);
+    root.style.setProperty('--print-paper-height', `${paperSize.height}mm`);
+    
+    return () => {
+      root.style.removeProperty('--print-paper-width');
+      root.style.removeProperty('--print-paper-height');
+    };
+  }, [paperSize.width, paperSize.height]);
+
+  // ── Get the most recent chapter title up to a given page index ──
+  // Running head should only show chapter titles, not page-level titles
+  const getChapterTitleForPage = (pageIndex: number): string => {
+    for (let i = pageIndex; i >= 0; i--) {
+      const page = book.pages[i];
+      // Only chapter layout titles are used for running head
+      if (page.layoutType === 'chapter' && page.title) {
+        return page.title;
+      }
+    }
+    return '';
+  };
+
+  return (
+    <div id="print-book-surface">
+      {book.pages.map((page, index) => {
+        const currentSectionTitle = getChapterTitleForPage(index);
+        return (
+          <React.Fragment key={page.id}>
+          <PageRenderer
+            page={page}
+            pageIndex={index}
+            isRightPage={index % 2 === 0}
+            book={book}
+            settings={settings}
+            mode="print"
+            paperTheme={paperTheme}
+            currentSectionTitle={currentSectionTitle}
+          />
+          </React.Fragment>
+        );
+      })}
+    </div>
+  );
+}
+</file>
+
 <file path="src/components/PageRenderer.tsx">
 /**
  * @license
@@ -3525,13 +3854,14 @@ export type PageRendererProps = {
   isRightPage: boolean;
   book: Book;
   settings: PrintSettings;
+  currentSectionTitle?: string; // For running heads (most recent section title)
 } & ModeProps;
 
 // ─────────────────────────────────────────────
 // Main component
 // ─────────────────────────────────────────────
 export default function PageRenderer(props: PageRendererProps) {
-  const { page, pageIndex, isRightPage, book, settings } = props;
+  const { page, pageIndex, isRightPage, book, settings, currentSectionTitle } = props;
 
   // ── Safety check: handle undefined page or book ──
   if (!page || !book) {
@@ -3686,28 +4016,41 @@ export default function PageRenderer(props: PageRendererProps) {
         showCropMarks={settings.showCropMarks}
       />
 
-      {/* Content container - varies by layout type */}
-      <div style={containerLayoutStyle}>
-        {/* Running head - used by specific layouts */}
-        {showRunningHead && (layoutType === 'body' || layoutType === 'sequence' || layoutType === 'header-body') && (
-          <RunningHeadRenderer
-            show={true}
-            isScreen={isScreen}
-            unit={unit}
-            position={{ top: pTopPx, left: paddingLeft }}
-            contentWidth={contentWidthStr}
-            fontSize={isScreen ? '11px' : '7.5pt'}
-            fontPx={fontPx}
-            type={layoutType === 'body' ? 'book' : 'section'}
-            book={layoutType === 'body' ? book : undefined}
-            pageTitle={layoutType === 'body' ? undefined : safePage.title}
-            isRightPage={isRightPage}
-          />
-        )}
+      {/* Determine if running head can be shown for this layout type */}
+      {(() => {
+        // Use pageTypeVisibility from GAS metadata for all layout types
+        const typeVisibility = settings.pageTypeVisibility?.[layoutType];
+        const canShowRunningHead = typeVisibility?.showRunningHead ?? settings.showRunningHead;
+        
+        return (
+          <div style={{
+            ...containerLayoutStyle,
+            marginTop: canShowRunningHead
+              ? (isScreen ? '28px' : '5mm')
+              : 0,
+          }}>
+            {/* Running head - controlled by GAS metadata */}
+            {canShowRunningHead && (
+              <RunningHeadRenderer
+                show={true}
+                isScreen={isScreen}
+                unit={unit}
+                position={{ top: pTopPx, left: paddingLeft }}
+                contentWidth={contentWidthStr}
+                fontSize={isScreen ? '11px' : '7.5pt'}
+                fontPx={fontPx}
+                type={layoutType === 'body' ? 'book' : 'section'}
+                book={layoutType === 'body' ? book : undefined}
+                pageTitle={layoutType === 'body' ? undefined : currentSectionTitle}
+                isRightPage={isRightPage}
+              />
+            )}
 
-        {/* Layout-specific content */}
-        <LayoutContentComponent {...contentProps} />
-      </div>
+            {/* Layout-specific content */}
+            <LayoutContentComponent {...contentProps} />
+          </div>
+        );
+      })()}
 
       {/* Page number (absolute positioned) */}
       {showPageNumbers && (
@@ -3722,6 +4065,205 @@ export default function PageRenderer(props: PageRendererProps) {
           settings={settings}
           marginBottom={uN(settings.margins.bottom / 2.5)}
         />
+      )}
+    </div>
+  );
+}
+</file>
+
+<file path="src/components/BookSpreadReader.tsx">
+/**
+ * @license
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import React from 'react';
+import { Book, PrintSettings, PRESET_PAPER_SIZES } from '../types';
+import PageRenderer from './PageRenderer';
+
+export type PaperTheme = 'creamy' | 'white' | 'sepia' | 'dark';
+
+interface BookSpreadReaderProps {
+  book: Book;
+  settings: PrintSettings;
+  scale: number;
+  viewMode: 'single' | 'double' | 'all';
+  currentPageSpread: number;
+  paperTheme: PaperTheme;
+  onPageClick?: (pageIndex: number) => void;
+}
+
+export default function BookSpreadReader({
+  book,
+  settings,
+  scale,
+  viewMode,
+  currentPageSpread,
+  paperTheme,
+  onPageClick,
+}: BookSpreadReaderProps) {
+
+  // ── Safety check for uninitialized data ──
+  if (!book || !book.pages || book.pages.length === 0) {
+    return (
+      <div
+        className="w-full h-full flex items-center justify-center"
+        style={{ backgroundColor: '#F5F0E8', color: '#9A8F86' }}
+      >
+        <div className="text-center">
+          <div className="text-sm font-mono">데이터를 로드하는 중...</div>
+        </div>
+      </div>
+    );
+  }
+
+  const paperSize = PRESET_PAPER_SIZES.find((p) => p.id === settings.paperSizeId) || PRESET_PAPER_SIZES[0];
+  const pages = book.pages;
+  const totalPages = pages.length;
+
+  const deskBg = {
+    creamy: '#ECE5D8',
+    white:  '#f1f5f9',
+    sepia:  '#DAC292',
+    dark:   '#1C1C1C',
+  }[paperTheme];
+
+  // ── Get the most recent chapter title up to a given page index ──
+  // Running head should only show chapter titles, not page-level titles
+  const getChapterTitleForPage = (pageIndex: number): string => {
+    for (let i = pageIndex; i >= 0; i--) {
+      const page = pages[i];
+      // Only chapter layout titles are used for running head
+      if (page.layoutType === 'chapter' && page.title) {
+        return page.title;
+      }
+    }
+    return '';
+  };
+
+  // ─── PAGE RENDERER (delegates to shared PageRenderer component) ───
+  const renderPage = (pageIndex: number, isRightPage: boolean) => {
+    const pageWidth  = `${paperSize.width  * scale}px`;
+    const pageHeight = `${paperSize.height * scale}px`;
+
+    // Blank slot (beyond last page in double view)
+    if (pageIndex < 0 || pageIndex >= totalPages) {
+      const blankBg = { creamy: 'bg-[#FAF6EC]', white: 'bg-white', sepia: 'bg-[#EBDCB9]', dark: 'bg-[#2E2E2E]' }[paperTheme];
+      return (
+        <div
+          style={{ width: pageWidth, height: pageHeight }}
+          className={`${blankBg} relative hidden md:flex items-center justify-center`}
+        >
+          <span className="text-slate-400/40 text-xs font-mono select-none">[빈 페이지]</span>
+        </div>
+      );
+    }
+
+    const currentSectionTitle = getChapterTitleForPage(pageIndex);
+
+    return (
+      <PageRenderer
+        page={pages[pageIndex]}
+        pageIndex={pageIndex}
+        isRightPage={isRightPage}
+        book={book}
+        settings={settings}
+        mode="screen"
+        scale={scale}
+        paperTheme={paperTheme}
+        currentSectionTitle={currentSectionTitle}
+      />
+    );
+  };
+
+  const leftPageIndex  = currentPageSpread;
+  const rightPageIndex = currentPageSpread + 1;
+
+  // ─── ALL PAGES GRID VIEW ───
+  if (viewMode === 'all') {
+    const thumbScale = Math.max(0.9, Math.min(1.5, 240 / paperSize.height));
+    const thumbW = Math.round(paperSize.width  * thumbScale);
+    const thumbH = Math.round(paperSize.height * thumbScale);
+
+    return (
+      <div
+        className="w-full min-h-full p-8 transition-colors duration-200"
+        style={{ backgroundColor: deskBg }}
+      >
+        <div
+          className="grid gap-6 justify-center mx-auto"
+          style={{ gridTemplateColumns: `repeat(auto-fill, ${thumbW}px)` }}
+        >
+          {pages.map((page, index) => {
+            const isSelected = index === currentPageSpread || index === currentPageSpread + 1;
+            const currentSectionTitle = getChapterTitleForPage(index);
+            return (
+              <div
+                key={page.id}
+                className="flex flex-col items-center gap-1.5 cursor-pointer group"
+                onClick={() => onPageClick?.(index)}
+              >
+                <div
+                  className="relative overflow-hidden transition-all duration-150 group-hover:scale-[1.03]"
+                  style={{
+                    width: thumbW,
+                    height: thumbH,
+                    boxShadow: isSelected
+                      ? '0 0 0 2px #B5714A, 0 4px 16px rgba(0,0,0,0.25)'
+                      : '0 2px 10px rgba(0,0,0,0.18)',
+                    borderRadius: 2,
+                  }}
+                >
+                  <PageRenderer
+                    page={page}
+                    pageIndex={index}
+                    isRightPage={index % 2 !== 0}
+                    book={book}
+                    settings={settings}
+                    mode="screen"
+                    scale={thumbScale}
+                    paperTheme={paperTheme}
+                    currentSectionTitle={currentSectionTitle}
+                  />
+                </div>
+                <span
+                  className="text-[10px] font-mono select-none"
+                  style={{ color: isSelected ? '#B5714A' : '#9A8F86' }}
+                >
+                  {index + 1}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="w-full flex justify-center items-start overflow-auto py-10 px-6 min-h-full transition-colors duration-200 scrollbar-thin"
+      style={{ backgroundColor: deskBg }}
+    >
+      {viewMode === 'double' ? (
+        <div className="relative flex justify-center drop-shadow-2xl">
+          <div className="absolute inset-0 bg-[#3a4454]/10 rounded-2xl -m-2 opacity-50 blur-xl pointer-events-none" />
+          {renderPage(leftPageIndex, false)}
+          {rightPageIndex < totalPages && (
+            <>
+              {/* Spine */}
+              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-8 pointer-events-none z-30 flex">
+                <div className="w-1/2 h-full bg-gradient-to-r from-black/8 via-black/18 to-transparent" />
+                <div className="w-1/2 h-full bg-gradient-to-l from-black/8 via-black/18 to-transparent" />
+                <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-0.5 bg-black/40 shadow-[0_0_2px_rgba(0,0,0,0.5)]" />
+              </div>
+              {renderPage(rightPageIndex, true)}
+            </>
+          )}
+        </div>
+      ) : (
+        <div className="relative shadow-2xl rounded-sm">
+          {renderPage(currentPageSpread, currentPageSpread % 2 !== 0)}
+        </div>
       )}
     </div>
   );
@@ -3872,6 +4414,7 @@ export interface Book {
 /** 전체 프로젝트 데이터 (메타데이터 + 페이지 서식) */
 export interface BookProject {
   title: string;
+  subtitle?: string;
   author: string;
   theme: BookTheme;
   paperSize: string;
@@ -4102,6 +4645,46 @@ export default function BookEditor({
                   </p>
                 </div>
 
+                {/* 페이지 요소: 쪽번호, 러닝헤드 */}
+                {currentPage && (
+                  <div style={{ paddingBottom: '1.25rem' }}>
+                    <label className="block text-[10px] font-bold mb-2" style={{ color: '#B4A99E' }}>페이지 요소</label>
+                    {[
+                      { key: 'showPageNumbers', label: '쪽번호' },
+                      { key: 'showRunningHead', label: '러닝헤드' }
+                    ].map(({ key, label }) => {
+                      const currentVisibility = settings.pageTypeVisibility?.[currentPage.layoutType] || {
+                        showPageNumbers: settings.showPageNumbers,
+                        showRunningHead: settings.showRunningHead,
+                      };
+                      return (
+                        <label key={key} className="flex items-center gap-2.5 py-2 cursor-pointer select-none text-[11px]" style={{ color: '#7A6F66' }}>
+                          <input
+                            type="checkbox"
+                            checked={currentVisibility[key as keyof typeof currentVisibility]}
+                            onChange={(e) => {
+                              const newPageTypeVisibility = {
+                                ...(settings.pageTypeVisibility || {}),
+                                [currentPage.layoutType]: {
+                                  ...(settings.pageTypeVisibility?.[currentPage.layoutType] || {
+                                    showPageNumbers: settings.showPageNumbers,
+                                    showRunningHead: settings.showRunningHead,
+                                  }),
+                                  [key]: e.target.checked,
+                                },
+                              } as Record<PageLayoutType, { showPageNumbers: boolean; showRunningHead: boolean }>;
+                              onChangeSettings({ ...settings, pageTypeVisibility: newPageTypeVisibility });
+                            }}
+                            className="w-3.5 h-3.5 rounded cursor-pointer"
+                            style={{ accentColor: '#B5714A' }}
+                          />
+                          {label}
+                        </label>
+                      );
+                    })}
+                  </div>
+                )}
+
                 {currentPage.layoutType === 'cover' && (
                   <div className="space-y-3">
                     <FieldInput label="커버 제목"   value={currentPage.title || ''}   onChange={(v) => onUpdatePageMeta(currentPage.id, { title: v })}   placeholder="커버에 표시될 제목" />
@@ -4255,45 +4838,7 @@ export default function BookEditor({
                   </div>
                 )}
 
-                {/* 페이지 요소: 쪽번호, 러닝헤드 */}
-                {currentPage && (
-                  <div style={{ borderTop: '1px solid #E8E0D4', paddingTop: '1.25rem' }}>
-                    <label className="block text-[10px] font-bold mb-2" style={{ color: '#B4A99E' }}>페이지 요소</label>
-                    {[
-                      { key: 'showPageNumbers', label: '쪽번호' },
-                      { key: 'showRunningHead', label: '러닝헤드' }
-                    ].map(({ key, label }) => {
-                      const currentVisibility = settings.pageTypeVisibility?.[currentPage.layoutType] || {
-                        showPageNumbers: settings.showPageNumbers,
-                        showRunningHead: settings.showRunningHead,
-                      };
-                      return (
-                        <label key={key} className="flex items-center gap-2.5 py-2 cursor-pointer select-none text-[11px]" style={{ color: '#7A6F66' }}>
-                          <input
-                            type="checkbox"
-                            checked={currentVisibility[key as keyof typeof currentVisibility]}
-                            onChange={(e) => {
-                              const newPageTypeVisibility = {
-                                ...(settings.pageTypeVisibility || {}),
-                                [currentPage.layoutType]: {
-                                  ...(settings.pageTypeVisibility?.[currentPage.layoutType] || {
-                                    showPageNumbers: settings.showPageNumbers,
-                                    showRunningHead: settings.showRunningHead,
-                                  }),
-                                  [key]: e.target.checked,
-                                },
-                              } as Record<PageLayoutType, { showPageNumbers: boolean; showRunningHead: boolean }>;
-                              onChangeSettings({ ...settings, pageTypeVisibility: newPageTypeVisibility });
-                            }}
-                            className="w-3.5 h-3.5 rounded cursor-pointer"
-                            style={{ accentColor: '#B5714A' }}
-                          />
-                          {label}
-                        </label>
-                      );
-                    })}
-                  </div>
-                )}
+
               </>
               ) : (
               <p className="text-[11px]" style={{ color: '#aaa' }}>선택된 페이지 없음</p>
@@ -4454,187 +4999,6 @@ function FieldInput({
 }
 </file>
 
-<file path="src/components/BookSpreadReader.tsx">
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import React from 'react';
-import { Book, PrintSettings, PRESET_PAPER_SIZES } from '../types';
-import PageRenderer from './PageRenderer';
-
-export type PaperTheme = 'creamy' | 'white' | 'sepia' | 'dark';
-
-interface BookSpreadReaderProps {
-  book: Book;
-  settings: PrintSettings;
-  scale: number;
-  viewMode: 'single' | 'double' | 'all';
-  currentPageSpread: number;
-  paperTheme: PaperTheme;
-  onPageClick?: (pageIndex: number) => void;
-}
-
-export default function BookSpreadReader({
-  book,
-  settings,
-  scale,
-  viewMode,
-  currentPageSpread,
-  paperTheme,
-  onPageClick,
-}: BookSpreadReaderProps) {
-
-  // ── Safety check for uninitialized data ──
-  if (!book || !book.pages || book.pages.length === 0) {
-    return (
-      <div
-        className="w-full h-full flex items-center justify-center"
-        style={{ backgroundColor: '#F5F0E8', color: '#9A8F86' }}
-      >
-        <div className="text-center">
-          <div className="text-sm font-mono">데이터를 로드하는 중...</div>
-        </div>
-      </div>
-    );
-  }
-
-  const paperSize = PRESET_PAPER_SIZES.find((p) => p.id === settings.paperSizeId) || PRESET_PAPER_SIZES[0];
-  const pages = book.pages;
-  const totalPages = pages.length;
-
-  const deskBg = {
-    creamy: '#ECE5D8',
-    white:  '#f1f5f9',
-    sepia:  '#DAC292',
-    dark:   '#1C1C1C',
-  }[paperTheme];
-
-  // ─── PAGE RENDERER (delegates to shared PageRenderer component) ───
-  const renderPage = (pageIndex: number, isRightPage: boolean) => {
-    const pageWidth  = `${paperSize.width  * scale}px`;
-    const pageHeight = `${paperSize.height * scale}px`;
-
-    // Blank slot (beyond last page in double view)
-    if (pageIndex < 0 || pageIndex >= totalPages) {
-      const blankBg = { creamy: 'bg-[#FAF6EC]', white: 'bg-white', sepia: 'bg-[#EBDCB9]', dark: 'bg-[#2E2E2E]' }[paperTheme];
-      return (
-        <div
-          style={{ width: pageWidth, height: pageHeight }}
-          className={`${blankBg} relative hidden md:flex items-center justify-center`}
-        >
-          <span className="text-slate-400/40 text-xs font-mono select-none">[빈 페이지]</span>
-        </div>
-      );
-    }
-
-    return (
-      <PageRenderer
-        page={pages[pageIndex]}
-        pageIndex={pageIndex}
-        isRightPage={isRightPage}
-        book={book}
-        settings={settings}
-        mode="screen"
-        scale={scale}
-        paperTheme={paperTheme}
-      />
-    );
-  };
-
-  const leftPageIndex  = currentPageSpread;
-  const rightPageIndex = currentPageSpread + 1;
-
-  // ─── ALL PAGES GRID VIEW ───
-  if (viewMode === 'all') {
-    const thumbScale = Math.max(0.9, Math.min(1.5, 240 / paperSize.height));
-    const thumbW = Math.round(paperSize.width  * thumbScale);
-    const thumbH = Math.round(paperSize.height * thumbScale);
-
-    return (
-      <div
-        className="w-full min-h-full p-8 transition-colors duration-200"
-        style={{ backgroundColor: deskBg }}
-      >
-        <div
-          className="grid gap-6 justify-center mx-auto"
-          style={{ gridTemplateColumns: `repeat(auto-fill, ${thumbW}px)` }}
-        >
-          {pages.map((page, index) => {
-            const isSelected = index === currentPageSpread || index === currentPageSpread + 1;
-            return (
-              <div
-                key={page.id}
-                className="flex flex-col items-center gap-1.5 cursor-pointer group"
-                onClick={() => onPageClick?.(index)}
-              >
-                <div
-                  className="relative overflow-hidden transition-all duration-150 group-hover:scale-[1.03]"
-                  style={{
-                    width: thumbW,
-                    height: thumbH,
-                    boxShadow: isSelected
-                      ? '0 0 0 2px #B5714A, 0 4px 16px rgba(0,0,0,0.25)'
-                      : '0 2px 10px rgba(0,0,0,0.18)',
-                    borderRadius: 2,
-                  }}
-                >
-                  <PageRenderer
-                    page={page}
-                    pageIndex={index}
-                    isRightPage={index % 2 !== 0}
-                    book={book}
-                    settings={settings}
-                    mode="screen"
-                    scale={thumbScale}
-                    paperTheme={paperTheme}
-                  />
-                </div>
-                <span
-                  className="text-[10px] font-mono select-none"
-                  style={{ color: isSelected ? '#B5714A' : '#9A8F86' }}
-                >
-                  {index + 1}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="w-full flex justify-center items-start overflow-auto py-10 px-6 min-h-full transition-colors duration-200 scrollbar-thin"
-      style={{ backgroundColor: deskBg }}
-    >
-      {viewMode === 'double' ? (
-        <div className="relative flex justify-center drop-shadow-2xl">
-          <div className="absolute inset-0 bg-[#3a4454]/10 rounded-2xl -m-2 opacity-50 blur-xl pointer-events-none" />
-          {renderPage(leftPageIndex, false)}
-          {rightPageIndex < totalPages && (
-            <>
-              {/* Spine */}
-              <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-8 pointer-events-none z-30 flex">
-                <div className="w-1/2 h-full bg-gradient-to-r from-black/8 via-black/18 to-transparent" />
-                <div className="w-1/2 h-full bg-gradient-to-l from-black/8 via-black/18 to-transparent" />
-                <div className="absolute left-1/2 -translate-x-1/2 top-0 bottom-0 w-0.5 bg-black/40 shadow-[0_0_2px_rgba(0,0,0,0.5)]" />
-              </div>
-              {renderPage(rightPageIndex, true)}
-            </>
-          )}
-        </div>
-      ) : (
-        <div className="relative shadow-2xl rounded-sm">
-          {renderPage(currentPageSpread, currentPageSpread % 2 !== 0)}
-        </div>
-      )}
-    </div>
-  );
-}
-</file>
-
 <file path="src/App.tsx">
 /**
  * @license
@@ -4644,6 +5008,7 @@ export default function BookSpreadReader({
 import React, { useState, useEffect } from 'react';
 import { Book, Page, PageLayoutType, PrintSettings, BookProject } from './types';
 import { useEbookSheet } from './hooks/useEbookSheet';
+import { useUndoRedo } from './hooks/useUndoRedo';
 import BookEditor from './components/BookEditor';
 import PrintSurface from './components/PrintSurface';
 import DocumentStructure from './components/DocumentStructure';
@@ -4662,9 +5027,15 @@ import {
 import BookSpreadReader, { PaperTheme } from './components/BookSpreadReader';
 
   
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbw5wqRsjurTuqrvhQgB7fHTM_nCebLoSbCgo20-kkT0SDk67Yc4mWi_2AWD9lfXleHF/exec';
+const GAS_URL = `
+https://script.google.com/macros/s/AKfycbydNffROzn6M8YcRJf0ziIO1LVp5OGsKTPLF4Oe_L252e4UxLRbdHcdC0mrxWvXr1wL/exec
+`;
+
 export default function App() {
   const [book, setBook] = useState<Book | null>(null);
+
+  // Undo/Redo state management for page operations (delete, reorder)
+  const undoRedo = useUndoRedo(book);
 
   // Page navigation state
   const [selectedPageIndex, setSelectedPageIndex] = useState<number>(0);
@@ -4721,14 +5092,23 @@ export default function App() {
       
       if (pages && pages.length > 0) {
         console.log(`✅ 로드 성공: ${pages.length}개 페이지`);
+        // Remove page-level showPageNumbers and showRunningHead (use pageTypeVisibility instead)
+        const cleanPages = pages.map((page: any) => {
+          const { showPageNumbers, showRunningHead, ...cleanPage } = page;
+          return cleanPage;
+        });
         // Set book with title, author, theme, and pages
         setBook({
           id: 'loaded-book',
           title: result.title || '제목 없음',
+          subtitle: result.subtitle || '',
           author: result.author || '',
           theme: result.theme || 'classic',
-          pages: pages,
+          pages: cleanPages,
         });
+        
+        // Clear undo/redo history on initial load
+        undoRedo.clear();
         
         // Set settings with print/format configuration
         setSettings({
@@ -4806,12 +5186,22 @@ export default function App() {
     setBook(updatedBook);
   };
 
-  const handleUpdatePageMeta = (pageId: string, updates: Partial<Pick<Page, 'title' | 'content'>>) => {
+  const handleUpdatePageMeta = (pageId: string, updates: Partial<Pick<Page, 'title' | 'content' | 'subtitle' | 'author'>>) => {
     if (!book) return;
     const updatedPages = book.pages.map((p) =>
       p.id === pageId ? { ...p, ...updates } : p
     );
-    handleUpdateBook({ ...book, pages: updatedPages });
+    
+    // Cover 업데이트 시 책의 메타데이터도 함께 업데이트
+    let updatedBook = { ...book, pages: updatedPages };
+    const coverPage = updatedPages.find(p => p.layoutType === 'cover');
+    if (coverPage) {
+      updatedBook.title = coverPage.title || updatedBook.title;
+      updatedBook.subtitle = coverPage.subtitle || updatedBook.subtitle;
+      updatedBook.author = coverPage.author || updatedBook.author;
+    }
+    
+    handleUpdateBook(updatedBook);
   };
 
   const handleUpdatePageTitle = (pageId: string, title: string) => {
@@ -4829,8 +5219,9 @@ export default function App() {
   // Insert page AFTER current selection
   const handleAddPage = (layoutType: PageLayoutType) => {
     if (!book) return;
-    const ts = Date.now();
-    const newPage: Page = { id: `p-${ts}`, layoutType, content: '', title: '' };
+    // Count pages of the same type to generate sequential id
+    const sameTypeCount = book.pages.filter(p => p.layoutType === layoutType).length;
+    const newPage: Page = { id: `${layoutType}-row-${sameTypeCount + 1}`, layoutType, content: '', title: '' };
     const insertIndex = selectedPageIndex + 1;
     const updatedPages = [
       ...book.pages.slice(0, insertIndex),
@@ -4843,6 +5234,9 @@ export default function App() {
 
   const handleDeletePage = (pageId: string) => {
     if (!book) return;
+    // Push current state to undo history before deletion
+    undoRedo.pushState(book);
+    
     const pageIndex = book.pages.findIndex((p) => p.id === pageId);
     const updatedPages = book.pages.filter((p) => p.id !== pageId);
     handleUpdateBook({ ...book, pages: updatedPages });
@@ -4856,7 +5250,23 @@ export default function App() {
 
   const handleReorderPages = (pages: Page[]) => {
     if (!book) return;
+    // Push current state to undo history before reordering
+    undoRedo.pushState(book);
     handleUpdateBook({ ...book, pages });
+  };
+
+  const handleUndo = () => {
+    const previousBook = undoRedo.undo();
+    if (previousBook) {
+      setBook(previousBook);
+    }
+  };
+
+  const handleRedo = () => {
+    const nextBook = undoRedo.redo();
+    if (nextBook) {
+      setBook(nextBook);
+    }
   };
 
   const handlePrint = () => {
@@ -4872,6 +5282,7 @@ export default function App() {
     // Construct complete BookProject from current state
     const project: BookProject = {
       title: book.title,
+      subtitle: book.subtitle,
       author: book.author,
       theme: book.theme,
       paperSize: settings.paperSizeId, // Convert from paperSizeId to paperSize
@@ -4902,6 +5313,7 @@ export default function App() {
         setBook({
           id: 'loaded-book',
           title: result.title || '제목 없음',
+          subtitle: result.subtitle || '',
           author: result.author || '',
           theme: result.theme || 'classic',
           pages: result.pages,
@@ -4938,8 +5350,15 @@ export default function App() {
     }
 
     // Create project data
+    // Remove page-level showPageNumbers and showRunningHead (use pageTypeVisibility instead)
+    const cleanPages = book.pages.map((page) => {
+      const { showPageNumbers, showRunningHead, ...cleanPage } = page as any;
+      return cleanPage;
+    });
+
     const projectData = {
       title: book.title,
+      subtitle: book.subtitle,
       author: book.author,
       theme: book.theme,
       paperSize: settings.paperSizeId,
@@ -4952,7 +5371,7 @@ export default function App() {
       showRunningHead: settings.showRunningHead,
       bleed: settings.bleed,
       pageTypeVisibility: settings.pageTypeVisibility,
-      pages: book.pages,
+      pages: cleanPages,
     };
 
     // Convert to JSON string
@@ -5071,6 +5490,10 @@ export default function App() {
           onUpdatePageTitle={handleUpdatePageTitle}
           onReorderPages={handleReorderPages}
           onUpdatePageType={handleUpdatePageType}
+          onUndo={handleUndo}
+          onRedo={handleRedo}
+          canUndo={undoRedo.canUndo}
+          canRedo={undoRedo.canRedo}
         />
 
         {/* ── CENTER: Book View ── */}
@@ -5083,7 +5506,7 @@ export default function App() {
           >
             <div className="flex items-center gap-3">
               <span className="text-[10px] font-semibold" style={{ color: '#B4A99E' }}>📘 책:</span>
-              <span className="text-[11px] font-bold" style={{ color: '#2A2420' }}>{book.title}</span>
+              <span className="text-[11px] font-bold" style={{ color: '#2A2420' }}>{book.title} ({book.subtitle})</span>
               <span className="text-[10px]" style={{ color: '#7A6F66' }}>• 테마: {book.theme}</span>
             </div>
           </div>
